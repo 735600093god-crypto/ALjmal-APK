@@ -39,6 +39,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Aljmal-Store-APK
-        path: |
-          */build/outputs/apk/debug/.apk
-          */build/outputs/apk/release/.apk
+        path: "*/.apk"
+        if-no-files-found: error
