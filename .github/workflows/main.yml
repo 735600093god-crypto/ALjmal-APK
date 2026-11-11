@@ -10,8 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java-version: [11, 17, 21] # سيقوم بتجربة كل هذه الإصدارات معاً
-      fail-fast: false # إذا فشل إصدار لا يتوقف الآخرون
+        java-version: ['11', '17', '21']
+      fail-fast: false
 
     steps:
     - uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
     - name: Set up JDK ${{ matrix.java-version }}
       uses: actions/setup-java@v4
       with:
-        java-version: ${{ matrix.matrix.java-version }}
+        java-version: ${{ matrix.java-version }}
         distribution: 'zulu'
         cache: 'gradle'
 
