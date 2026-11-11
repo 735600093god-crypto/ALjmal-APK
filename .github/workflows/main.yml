@@ -16,7 +16,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         java-version: '17'
-        distribution: 'temurin'
+        distribution: 'zulu'
         cache: 'gradle'
 
     - name: Ensure Gradle Wrapper exists
@@ -26,13 +26,10 @@ jobs:
         fi
         chmod +x gradlew
 
-    - name: Clean and Build with Gradle
-      run: ./gradlew clean assembleDebug --stacktrace --no-daemon
+    - name: Build with Gradle (Disable KSP Daemon)
+      run: ./gradlew assembleDebug -Dksp.useKspDaemon=false -Dorg.gradle.jvmargs="-Xmx2048m" --stacktrace
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: Aljmal-Store-APK
-        path: |
-          **/build/outputs/apk/debug/*.apk
-          **/build/outputs/apk/relea
