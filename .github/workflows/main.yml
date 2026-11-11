@@ -19,8 +19,10 @@ jobs:
         distribution: 'zulu'
         cache: 'gradle'
 
-    - name: Ensure Gradle Wrapper exists
+    - name: Fix Gradle Properties and Wrapper
       run: |
+        echo "" >> gradle.properties
+        echo "android.disallowKotlinSourceSets=false" >> gradle.properties
         if [ ! -f "gradlew" ]; then
           gradle wrapper
         fi
@@ -34,5 +36,5 @@ jobs:
       with:
         name: Aljmal-Store-APK
         path: |
-          **/build/outputs/apk/debug/*.apk
-          **/build/outputs/apk/release/*.apk
+          */build/outputs/apk/debug/.apk
+          */build/outputs/apk/release/.apk
