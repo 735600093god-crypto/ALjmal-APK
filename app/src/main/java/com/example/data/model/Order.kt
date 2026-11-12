@@ -8,13 +8,21 @@ data class CartItem(
         get() = product.priceYer * quantity
 }
 
-enum class PaymentMethod(val title: String, val subtitle: String, val iconName: String) {
-    CASH_ON_DELIVERY("الدفع نقداً عند الاستلام", "ادفع عند وصول الطلب لباب منزلك", "cash"),
-    KURAIMI("بنك الكريمي (حاسب / m-floos)", "تحويل فوري لحساب المتجر بالكريمي", "bank"),
-    JAWALI("محفظة جوالي", "الدفع عبر تطبيق جوالي", "wallet"),
-    FLOOSAK("محفظة فلوسك", "الدفع السريع عبر فلوسك", "wallet"),
-    ONE_CASH("محفظة ون كاش", "الدفع عبر ون كاش المعتمد", "wallet")
-}
+data class WalletAccount(
+    val id: String,
+    val name: String,
+    val accountNumber: String,
+    val accountHolder: String,
+    val note: String = "",
+    val isEnabled: Boolean = true
+)
+
+data class CategoryCustomization(
+    val categoryId: String,
+    val customTitle: String,
+    val customSubtitle: String,
+    val customImageUrl: String? = null
+)
 
 data class OrderSubmission(
     val orderId: String,
@@ -22,7 +30,8 @@ data class OrderSubmission(
     val customerPhone: String,
     val deliveryAddress: String,
     val deliveryNotes: String,
-    val paymentMethod: PaymentMethod,
+    val paymentMethodName: String,
+    val walletDetails: String? = null,
     val items: List<CartItem>,
     val subtotalYer: Double,
     val deliveryFeeYer: Double,
@@ -34,6 +43,8 @@ data class OrderSubmission(
             "▪️ ${it.product.name} (${it.quantity} ${it.product.unit}) = ${(it.product.priceYer * it.quantity).toInt()} ر.ي"
         }
 
+        val walletInfo = if (!walletDetails.isNullOrBlank()) "\n💳 تفاصيل الحساب: $walletDetails" else ""
+
         return """
             السلام عليكم ورحمة الله وبركاته،
             طلب جديد من تطبيق *متجر الجمل* 🛒
@@ -43,7 +54,7 @@ data class OrderSubmission(
             📱 الهاتف: $customerPhone
             📍 العنوان: $deliveryAddress
             📝 ملاحظات: ${if (deliveryNotes.isNotBlank()) deliveryNotes else "لا توجد"}
-            💳 طريقة الدفع: ${paymentMethod.title}
+            💳 طريقة الدفع: $paymentMethodName$walletInfo
             
             *تفاصيل الأصناف:*
             $itemsSummary

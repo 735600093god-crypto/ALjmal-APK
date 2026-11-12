@@ -104,13 +104,6 @@ fun AlJamalStoreApp(
                     searchQuery = uiState.searchQuery,
                     onSearchChange = { viewModel.updateSearchQuery(it) },
                     onLocationClick = { viewModel.openLocationPicker() },
-                    onAdminClick = {
-                        if (uiState.isAdminUnlocked) {
-                            viewModel.selectTab(AppTab.ACCOUNT)
-                        } else {
-                            viewModel.openAdminLogin()
-                        }
-                    },
                     onCurrencyClick = {
                         val nextCurrency = when (uiState.currency) {
                             Currency.YER -> Currency.SAR
@@ -147,6 +140,7 @@ fun AlJamalStoreApp(
                         currency = uiState.currency,
                         storePhone = viewModel.repository.storePhone,
                         storeWhatsApp = viewModel.repository.storeWhatsApp,
+                        categoryCustomizations = uiState.categoryCustomizations,
                         onCategorySelected = { viewModel.selectCategory(it) },
                         onProductClick = { viewModel.openProductDetail(it) },
                         onAddToCart = { viewModel.addToCart(it.id) },
@@ -200,12 +194,13 @@ fun AlJamalStoreApp(
                         currency = uiState.currency,
                         defaultLocation = uiState.deliveryLocation,
                         storeWhatsApp = viewModel.repository.storeWhatsApp,
+                        walletAccounts = uiState.walletAccounts,
                         onAddToCart = { viewModel.addToCart(it.id) },
                         onDecrement = { viewModel.decrementFromCart(it.id) },
                         onRemoveFromCart = { viewModel.removeFromCart(it.id) },
                         onClearCart = { viewModel.clearCart() },
-                        onSubmitOrder = { name, phone, address, notes, method ->
-                            viewModel.submitOrder(name, phone, address, notes, method)
+                        onSubmitOrder = { name, phone, address, notes, payMethod, walletInfo ->
+                            viewModel.submitOrder(name, phone, address, notes, payMethod, walletInfo)
                         }
                     )
                 }
@@ -221,10 +216,21 @@ fun AlJamalStoreApp(
                         storePhone = viewModel.repository.storePhone,
                         storeWhatsApp = viewModel.repository.storeWhatsApp,
                         storeLocation = viewModel.repository.storeLocation,
+                        adminPin = uiState.adminPin,
+                        walletAccounts = uiState.walletAccounts,
+                        categoryCustomizations = uiState.categoryCustomizations,
                         onUnlockAdminRequest = { viewModel.openAdminLogin() },
                         onLockAdmin = { viewModel.lockAdmin() },
                         onToggleOfferSlot = { viewModel.toggleOfferSlot(it) },
                         onUpdatePrice = { id, p, orig -> viewModel.updateProductPrice(id, p, orig) },
+                        onUpdateProductImage = { id, imgUri -> viewModel.updateProductImage(id, imgUri) },
+                        onDeleteProduct = { viewModel.deleteProduct(it) },
+                        onAddNewProduct = { viewModel.addNewProduct(it) },
+                        onUpdateCategory = { id, title, sub, img -> viewModel.updateCategory(id, title, sub, img) },
+                        onAddWalletAccount = { viewModel.addWalletAccount(it) },
+                        onUpdateWalletAccount = { viewModel.updateWalletAccount(it) },
+                        onDeleteWalletAccount = { viewModel.deleteWalletAccount(it) },
+                        onChangeAdminPin = { viewModel.changeAdminPin(it) },
                         onProductClick = { viewModel.openProductDetail(it) },
                         onAddToCart = { viewModel.addToCart(it.id) },
                         onDecrement = { viewModel.decrementFromCart(it.id) },
@@ -263,6 +269,7 @@ fun AlJamalStoreApp(
     // 3. Admin / Manager Login
     if (uiState.showAdminLogin) {
         AdminLoginDialog(
+            expectedPin = uiState.adminPin,
             onSuccess = {
                 viewModel.unlockAdmin()
                 viewModel.selectTab(AppTab.ACCOUNT)

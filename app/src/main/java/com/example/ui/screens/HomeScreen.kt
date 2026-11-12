@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,8 +21,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,23 +33,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.R
+import com.example.data.model.CategoryCustomization
 import com.example.data.model.Currency
 import com.example.data.model.Product
 import com.example.data.model.ProductCategory
-import com.example.ui.components.CategoryChips
+import com.example.ui.components.CategoryShowcaseSection
 import com.example.ui.components.HeroBanner
 import com.example.ui.components.ProductCard
 import com.example.ui.components.SpecialOffersSection
+import com.example.ui.theme.Amber300
 import com.example.ui.theme.Amber400
+import com.example.ui.theme.Amber500
 import com.example.ui.theme.Emerald200
 import com.example.ui.theme.Emerald50
+import com.example.ui.theme.Emerald600
 import com.example.ui.theme.Emerald800
 import com.example.ui.theme.Emerald900
 import com.example.ui.theme.Stone100
@@ -66,6 +78,7 @@ fun HomeScreen(
     currency: Currency,
     storePhone: String,
     storeWhatsApp: String,
+    categoryCustomizations: Map<String, CategoryCustomization> = emptyMap(),
     onCategorySelected: (ProductCategory?) -> Unit,
     onProductClick: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
@@ -75,6 +88,8 @@ fun HomeScreen(
     onManageSlotsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -86,7 +101,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(4.dp))
         }
 
-        // 1. Hero Banner
+        // 1. Hero Banner with Level Yellow Call Strip and WhatsApp Order Button
         item {
             HeroBanner(
                 storePhone = storePhone,
@@ -95,7 +110,7 @@ fun HomeScreen(
             )
         }
 
-        // Official Slogan & Produce Poster Showcase
+        // Official Slogan & Produce Poster Showcase + Quick Leveled Contact Strip
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -118,7 +133,7 @@ fun HomeScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(
                         modifier = Modifier
@@ -130,13 +145,13 @@ fun HomeScreen(
                         Column {
                             Text(
                                 text = "جودة نختارها لك... وطعم يستحق التجربه",
-                                fontSize = 13.sp,
+                                fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Emerald900
                             )
                             Text(
-                                text = "صنعاء - التوفير هايبر فرع حده • هاتف: 776 662 630",
-                                fontSize = 10.sp,
+                                text = "صنعاء - التوفير هايبر فرع حده",
+                                fontSize = 10.5.sp,
                                 color = Stone500,
                                 fontWeight = FontWeight.Medium
                             )
@@ -146,24 +161,123 @@ fun HomeScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(Amber400)
-                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
                                 text = "طازج يومياً",
-                                fontSize = 9.sp,
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Stone950
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Contact Strip: Yellow Rectangle for Call + WhatsApp Order with Arrow
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Level Yellow Call Rectangle
+                        Box(
+                            modifier = Modifier
+                                .weight(1.15f)
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Amber400)
+                                .border(1.dp, Amber500, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                                        data = Uri.parse("tel:$storePhone")
+                                    }
+                                    context.startActivity(intent)
+                                }
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Call,
+                                    contentDescription = "اتصال",
+                                    tint = Stone950,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "اتصل:",
+                                    color = Stone950,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "776 662 630",
+                                    color = Stone950,
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+
+                        // WhatsApp Order Button with Arrow
+                        Box(
+                            modifier = Modifier
+                                .weight(1.05f)
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Emerald600)
+                                .border(1.dp, Emerald600, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    val url = "https://wa.me/$storeWhatsApp?text=${Uri.encode("السلام عليكم، أود طلب خضار وفواكه وتمور من متجر الجمل")}"
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                    context.startActivity(intent)
+                                }
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Send,
+                                    contentDescription = "واتساب",
+                                    tint = White,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "طلب الواتس",
+                                    color = White,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.ChevronLeft,
+                                    contentDescription = null,
+                                    tint = Amber300,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // 2. Category Chips
+        // 2. Categories Showcase with Photos (Controlled & changeable from Admin)
         item {
-            CategoryChips(
+            CategoryShowcaseSection(
                 selectedCategory = selectedCategory,
+                categoryCustomizations = categoryCustomizations,
                 onCategorySelected = onCategorySelected
             )
         }
@@ -189,6 +303,7 @@ fun HomeScreen(
                     currency = currency,
                     cartMap = cartMap,
                     favorites = favorites,
+                    categoryCustomizations = categoryCustomizations,
                     onProductClick = onProductClick,
                     onAddToCart = onAddToCart,
                     onDecrement = onDecrement,
@@ -208,6 +323,7 @@ fun HomeScreen(
                             currency = currency,
                             cartMap = cartMap,
                             favorites = favorites,
+                            categoryCustomizations = categoryCustomizations,
                             onProductClick = onProductClick,
                             onAddToCart = onAddToCart,
                             onDecrement = onDecrement,
@@ -232,12 +348,18 @@ private fun CategorySectionView(
     currency: Currency,
     cartMap: Map<String, Int>,
     favorites: Set<String>,
+    categoryCustomizations: Map<String, CategoryCustomization>,
     onProductClick: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
     onDecrement: (Product) -> Unit,
     onToggleFavorite: (Product) -> Unit,
     onViewAllClick: () -> Unit
 ) {
+    val custom = categoryCustomizations[category.id]
+    val title = custom?.customTitle ?: category.title
+    val subtitle = custom?.customSubtitle ?: category.subtitle
+    val imageUrl = custom?.customImageUrl ?: category.defaultImageUrl
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -249,7 +371,7 @@ private fun CategorySectionView(
                 .fillMaxWidth()
                 .padding(14.dp)
         ) {
-            // Section Header matching HTML
+            // Section Header with Category Thumbnail
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -261,17 +383,21 @@ private fun CategorySectionView(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
+                    // Category Photo Thumbnail
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Amber400)
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Stone200)
                     ) {
-                        Text(
-                            text = category.badgeLabel,
-                            color = Stone950,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
 
@@ -280,7 +406,7 @@ private fun CategorySectionView(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = category.title,
+                                text = title,
                                 fontSize = 13.5.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Stone900
@@ -289,19 +415,12 @@ private fun CategorySectionView(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(Emerald50)
-                                    .border(1.dp, Emerald200.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                    .background(Amber400)
                                     .padding(horizontal = 5.dp, vertical = 1.dp)
                             ) {
                                 Text(
-                                    text = when (category) {
-                                        ProductCategory.LOCAL_FRUITS -> "قطاف محلي طازج"
-                                        ProductCategory.IMPORTED_FRUITS -> "عالمي نخب أول"
-                                        ProductCategory.VEGETABLES -> "طازج اليوم"
-                                        ProductCategory.PREMIUM_DATES -> "نخب أول ملوكي"
-                                        ProductCategory.DRIED_FRUITS -> "طبيعي 100%"
-                                    },
-                                    color = Emerald800,
+                                    text = category.badgeLabel,
+                                    color = Stone950,
                                     fontSize = 8.5.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -309,7 +428,7 @@ private fun CategorySectionView(
                         }
 
                         Text(
-                            text = category.subtitle,
+                            text = subtitle,
                             fontSize = 9.5.sp,
                             color = Stone400,
                             maxLines = 1,

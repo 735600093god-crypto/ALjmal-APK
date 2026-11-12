@@ -3,11 +3,12 @@ package com.example.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.model.CartItem
+import com.example.data.model.CategoryCustomization
 import com.example.data.model.Currency
 import com.example.data.model.OrderSubmission
-import com.example.data.model.PaymentMethod
 import com.example.data.model.Product
 import com.example.data.model.ProductCategory
+import com.example.data.model.WalletAccount
 import com.example.data.repository.StoreRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,6 +44,9 @@ data class StoreUiState(
     val showLocationPicker: Boolean = false,
     val showAdminLogin: Boolean = false,
     val isAdminUnlocked: Boolean = false,
+    val adminPin: String = "1234",
+    val walletAccounts: List<WalletAccount> = emptyList(),
+    val categoryCustomizations: Map<String, CategoryCustomization> = emptyMap(),
     val recentSubmittedOrder: OrderSubmission? = null,
     val showOrderSuccessDialog: Boolean = false
 )
@@ -62,53 +66,52 @@ class StoreViewModel(
     private val _showOrderSuccessDialog = MutableStateFlow(false)
 
     val uiState: StateFlow<StoreUiState> = combine(
-        repository.products,
-        repository.cart,
-        repository.favorites,
-        repository.offerSlotProductIds,
-        repository.deliveryLocation,
-        repository.currency,
-        _currentTab,
-        _selectedCategory,
-        _searchQuery,
-        _selectedProductForDetail,
-        _showLocationPicker,
-        _showAdminLogin,
-        _isAdminUnlocked,
-        _recentSubmittedOrder,
-        _showOrderSuccessDialog
-    ) { params ->
-        @Suppress("UNCHECKED_CAST")
-        val products = params[0] as List<Product>
-        @Suppress("UNCHECKED_CAST")
-        val cartMap = params[1] as Map<String, Int>
-        @Suppress("UNCHECKED_CAST")
-        val favs = params[2] as Set<String>
-        @Suppress("UNCHECKED_CAST")
-        val offerSlotIds = params[3] as List<String>
-        val loc = params[4] as String
-        val curr = params[5] as Currency
-        val tab = params[6] as AppTab
-        val cat = params[7] as ProductCategory?
-        val query = params[8] as String
-        val detailProduct = params[9] as Product?
-        val showLoc = params[10] as Boolean
-        val showAdm = params[11] as Boolean
-        val adminUnlocked = params[12] as Boolean
-        val recentOrder = params[13] as OrderSubmission?
-        val showOrderDialog = params[14] as Boolean
-
-        val filtered = products.filter { p ->
-            val matchCat = (cat == null || p.category == cat)
+        combine(
+            repository.products,
+            repository.cart,
+            repository.favorites,
+            repository.offerSlotProductIds,
+            repository.deliveryLocation
+        ) { p, c, f, o, loc ->
+            Tuple5(p, c, f, o, loc)
+        },
+        combine(
+            repository.currency,
+            repository.adminPin,
+            repository.walletAccounts,
+            repository.categoryCustomizations
+        ) { curr, pin, wallets, cats ->
+            Tuple4(curr, pin, wallets, cats)
+        },
+        combine(
+            _currentTab,
+            _selectedCategory,
+            _searchQuery,
+            _selectedProductForDetail,
+            _showLocationPicker
+        ) { tab, cat, query, detail, showLoc ->
+            Tuple5(tab, cat, query, detail, showLoc)
+        },
+        combine(
+            _showAdminLogin,
+            _isAdminUnlocked,
+            _recentSubmittedOrder,
+            _showOrderSuccessDialog
+        ) { showAdm, adminUnlocked, recentOrder, showOrderDialog ->
+            Tuple4(showAdm, adminUnlocked, recentOrder, showOrderDialog)
+        }
+    ) { (p, c, f, o, loc), (curr, pin, wallets, cats), (tab, cat, query, detail, showLoc), (showAdm, adminUnlocked, recentOrder, showOrderDialog) ->
+        val filtered = p.filter { prod ->
+            val matchCat = (cat == null || prod.category == cat)
             val matchQuery = query.isBlank() ||
-                    p.name.contains(query, ignoreCase = true) ||
-                    p.origin.contains(query, ignoreCase = true) ||
-                    p.category.title.contains(query, ignoreCase = true)
+                    prod.name.contains(query, ignoreCase = true) ||
+                    prod.origin.contains(query, ignoreCase = true) ||
+                    prod.category.title.contains(query, ignoreCase = true)
             matchCat && matchQuery
         }
 
-        val cartList = cartMap.mapNotNull { (id, qty) ->
-            val product = products.find { it.id == id }
+        val cartList = c.mapNotNull { (id, qty) ->
+            val product = p.find { it.id == id }
             if (product != null && qty > 0) CartItem(product, qty) else null
         }
 
@@ -117,7 +120,7 @@ class StoreViewModel(
         val deliveryFee = if (subtotal > 0) 5.0 else 0.0
         val total = subtotal + deliveryFee
 
-        val slotProducts = offerSlotIds.mapNotNull { id -> products.find { it.id == id } }
+        val slotProducts = o.mapNotNull { id -> p.find { it.id == id } }
 
         StoreUiState(
             currentTab = tab,
@@ -125,20 +128,23 @@ class StoreViewModel(
             searchQuery = query,
             deliveryLocation = loc,
             currency = curr,
-            allProducts = products,
+            allProducts = p,
             filteredProducts = filtered,
             cartItems = cartList,
             cartTotalCount = totalCount,
             subtotalYer = subtotal,
             deliveryFeeYer = deliveryFee,
             totalYer = total,
-            favorites = favs,
-            offerSlotItemIds = offerSlotIds,
+            favorites = f,
+            offerSlotItemIds = o,
             offerSlotProducts = slotProducts,
-            selectedProductForDetail = detailProduct,
+            selectedProductForDetail = detail,
             showLocationPicker = showLoc,
             showAdminLogin = showAdm,
             isAdminUnlocked = adminUnlocked,
+            adminPin = pin,
+            walletAccounts = wallets,
+            categoryCustomizations = cats,
             recentSubmittedOrder = recentOrder,
             showOrderSuccessDialog = showOrderDialog
         )
@@ -222,6 +228,10 @@ class StoreViewModel(
         _isAdminUnlocked.value = false
     }
 
+    fun changeAdminPin(newPin: String) {
+        repository.setAdminPin(newPin)
+    }
+
     fun toggleOfferSlot(productId: String) {
         repository.toggleOfferSlot(productId)
     }
@@ -230,12 +240,45 @@ class StoreViewModel(
         repository.updateProductPrice(productId, newPrice, newOriginalPrice)
     }
 
+    fun updateProductImage(productId: String, newImageUrl: String) {
+        repository.updateProductImage(productId, newImageUrl)
+    }
+
+    fun updateProduct(product: Product) {
+        repository.updateProduct(product)
+    }
+
+    fun deleteProduct(productId: String) {
+        repository.deleteProduct(productId)
+    }
+
+    fun addNewProduct(product: Product) {
+        repository.addNewProduct(product)
+    }
+
+    fun updateCategory(categoryId: String, title: String, subtitle: String, imageUrl: String?) {
+        repository.updateCategory(categoryId, title, subtitle, imageUrl)
+    }
+
+    fun addWalletAccount(account: WalletAccount) {
+        repository.addWalletAccount(account)
+    }
+
+    fun updateWalletAccount(account: WalletAccount) {
+        repository.updateWalletAccount(account)
+    }
+
+    fun deleteWalletAccount(id: String) {
+        repository.deleteWalletAccount(id)
+    }
+
     fun submitOrder(
         customerName: String,
         customerPhone: String,
         deliveryAddress: String,
         deliveryNotes: String,
-        paymentMethod: PaymentMethod
+        paymentMethodName: String,
+        walletDetails: String?
     ): OrderSubmission? {
         val state = uiState.value
         if (state.cartItems.isEmpty()) return null
@@ -246,7 +289,8 @@ class StoreViewModel(
             customerPhone = customerPhone,
             deliveryAddress = deliveryAddress,
             deliveryNotes = deliveryNotes,
-            paymentMethod = paymentMethod,
+            paymentMethodName = paymentMethodName,
+            walletDetails = walletDetails,
             items = state.cartItems,
             subtotalYer = state.subtotalYer,
             deliveryFeeYer = state.deliveryFeeYer,
@@ -264,3 +308,7 @@ class StoreViewModel(
         _currentTab.value = AppTab.HOME
     }
 }
+
+// Data helper classes for multi-flow combine
+private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
+private data class Tuple5<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, val e: E)

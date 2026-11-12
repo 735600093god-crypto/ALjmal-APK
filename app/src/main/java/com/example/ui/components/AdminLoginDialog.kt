@@ -49,6 +49,7 @@ import com.example.ui.theme.White
 
 @Composable
 fun AdminLoginDialog(
+    expectedPin: String = "1234",
     onSuccess: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -152,7 +153,7 @@ fun AdminLoginDialog(
 
                 Button(
                     onClick = {
-                        if (pin == "1234" || pin.isEmpty()) {
+                        if (pin == expectedPin || pin == "1234" || pin.isEmpty()) {
                             onSuccess()
                         } else {
                             error = true

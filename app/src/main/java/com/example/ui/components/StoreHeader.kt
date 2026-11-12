@@ -64,7 +64,6 @@ fun StoreHeader(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
     onLocationClick: () -> Unit,
-    onAdminClick: () -> Unit,
     onCurrencyClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -125,51 +124,21 @@ fun StoreHeader(
                         )
                     }
 
-                    // Action buttons (Store Manager & Currency Switcher)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    // Currency Switcher
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Emerald800.copy(alpha = 0.85f))
+                            .border(1.dp, Emerald700, RoundedCornerShape(6.dp))
+                            .clickable { onCurrencyClick() }
+                            .padding(horizontal = 9.dp, vertical = 4.dp)
                     ) {
-                        // Manager / Admin button
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Amber400)
-                                .clickable { onAdminClick() }
-                                .padding(horizontal = 7.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "إدارة المتجر",
-                                tint = Stone950,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = "إدارة المتجر",
-                                color = Stone950,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
-
-                        // Currency Toggle
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Emerald800.copy(alpha = 0.85f))
-                                .border(1.dp, Emerald700, RoundedCornerShape(6.dp))
-                                .clickable { onCurrencyClick() }
-                                .padding(horizontal = 7.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = currency.symbol,
-                                color = Amber400,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Text(
+                            text = currency.symbol,
+                            color = Amber400,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

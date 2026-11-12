@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
@@ -225,115 +227,100 @@ fun HeroBanner(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Action Buttons Row (Call, WhatsApp, Delivery Location)
+                // Action Buttons Row (Call in Yellow Rectangle Strip & WhatsApp Order with Arrow)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Call Button
+                    // 1. Yellow Rectangle Call Strip (مستطيل الشريط الأصفر المستوي)
                     Box(
                         modifier = Modifier
-                            .weight(1.1f)
+                            .weight(1.15f)
+                            .fillMaxSize()
                             .clip(RoundedCornerShape(12.dp))
                             .background(Amber400)
+                            .border(1.dp, Amber500, RoundedCornerShape(12.dp))
                             .clickable {
                                 val intent = Intent(Intent.ACTION_DIAL).apply {
                                     data = Uri.parse("tel:$storePhone")
                                 }
                                 context.startActivity(intent)
                             }
-                            .padding(vertical = 9.dp, horizontal = 6.dp)
+                            .padding(horizontal = 8.dp)
                             .testTag("call_button"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Call,
                                 contentDescription = "اتصال",
                                 tint = Stone950,
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "اتصل:",
+                                color = Stone950,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "776 662 630",
                                 color = Stone950,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(Stone950)
-                                    .padding(horizontal = 4.dp, vertical = 1.dp)
-                            ) {
-                                Text(
-                                    text = "اتصال",
-                                    color = Amber300,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
                         }
                     }
 
-                    // WhatsApp Button
+                    // 2. WhatsApp Order Button with Arrow (طلب الواتس بجانب السهم)
                     Box(
                         modifier = Modifier
-                            .weight(1.1f)
+                            .weight(1.05f)
+                            .fillMaxSize()
                             .clip(RoundedCornerShape(12.dp))
                             .background(Emerald600)
-                            .border(1.dp, Emerald500.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .border(1.dp, Emerald500.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                             .clickable {
                                 val url = "https://wa.me/$storeWhatsApp?text=${Uri.encode("السلام عليكم، أود الاستفسار عن طلب خضار وفواكه وتمور من متجر الجمل")}"
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                 context.startActivity(intent)
                             }
-                            .padding(vertical = 9.dp, horizontal = 6.dp)
+                            .padding(horizontal = 8.dp)
                             .testTag("whatsapp_button"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Send,
                                 contentDescription = "واتساب",
                                 tint = White,
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "طلب الواتس",
+                                color = White,
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Black
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "طلب واتساب سريع",
-                                color = White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    // Delivery Location Button
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(White.copy(alpha = 0.12f))
-                            .border(1.dp, White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                            .clickable { onLocationClick() }
-                            .padding(vertical = 9.dp, horizontal = 10.dp)
-                            .testTag("location_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Place,
-                                contentDescription = "موقع التوصيل",
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                                contentDescription = null,
                                 tint = Amber300,
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = "الموقع",
-                                color = Emerald100,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }

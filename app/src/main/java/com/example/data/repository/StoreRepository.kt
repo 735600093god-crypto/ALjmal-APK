@@ -1,11 +1,12 @@
 package com.example.data.repository
 
 import com.example.data.model.CartItem
+import com.example.data.model.CategoryCustomization
 import com.example.data.model.Currency
 import com.example.data.model.OrderSubmission
-import com.example.data.model.PaymentMethod
 import com.example.data.model.Product
 import com.example.data.model.ProductCategory
+import com.example.data.model.WalletAccount
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -477,6 +478,99 @@ class StoreRepository {
     val favorites: StateFlow<Set<String>> = _favorites.asStateFlow()
 
     // 4 Slots for exclusive offers (default empty as in HTML: 0 من 4 خانات)
+    // Admin Password / PIN (default 1234)
+    private val _adminPin = MutableStateFlow("1234")
+    val adminPin: StateFlow<String> = _adminPin.asStateFlow()
+
+    fun setAdminPin(newPin: String) {
+        _adminPin.value = newPin
+    }
+
+    // Dynamic Wallet Accounts
+    private val initialWallets = listOf(
+        WalletAccount(
+            id = "w_kuraimi",
+            name = "الكريمي حاسب (m-floos)",
+            accountNumber = "300776662",
+            accountHolder = "متجر الجمل للخضار والفواكه",
+            note = "تحويل فوري عبر تطبيق الكريمي جوال",
+            isEnabled = true
+        ),
+        WalletAccount(
+            id = "w_jawali",
+            name = "محفظة جوالي",
+            accountNumber = "776662630",
+            accountHolder = "متجر الجمل",
+            note = "الدفع الفوري عبر رقم المحفظة",
+            isEnabled = true
+        ),
+        WalletAccount(
+            id = "w_jeeb",
+            name = "محفظة جيب (Jeeb)",
+            accountNumber = "776662630",
+            accountHolder = "متجر الجمل",
+            note = "تحويل مباشر لمحفظة جيب",
+            isEnabled = true
+        ),
+        WalletAccount(
+            id = "w_floosak",
+            name = "محفظة فلوسك",
+            accountNumber = "776662630",
+            accountHolder = "متجر الجمل",
+            note = "تحويل فوري برقم الهاتف",
+            isEnabled = true
+        ),
+        WalletAccount(
+            id = "w_onecash",
+            name = "محفظة ون كاش",
+            accountNumber = "776662630",
+            accountHolder = "متجر الجمل",
+            note = "الدفع عبر خدمة ون كاش",
+            isEnabled = true
+        ),
+        WalletAccount(
+            id = "w_cash",
+            name = "الدفع نقداً عند الاستلام",
+            accountNumber = "عند الاستلام",
+            accountHolder = "كاش للمندوب",
+            note = "ادفع عند استلام طلبك طازجاً لباب منزلك",
+            isEnabled = true
+        )
+    )
+
+    private val _walletAccounts = MutableStateFlow(initialWallets)
+    val walletAccounts: StateFlow<List<WalletAccount>> = _walletAccounts.asStateFlow()
+
+    fun addWalletAccount(account: WalletAccount) {
+        _walletAccounts.update { it + account }
+    }
+
+    fun updateWalletAccount(account: WalletAccount) {
+        _walletAccounts.update { list ->
+            list.map { if (it.id == account.id) account else it }
+        }
+    }
+
+    fun deleteWalletAccount(id: String) {
+        _walletAccounts.update { list ->
+            list.filter { it.id != id }
+        }
+    }
+
+    // Category Customizations
+    private val _categoryCustomizations = MutableStateFlow<Map<String, CategoryCustomization>>(
+        ProductCategory.values().associate { cat ->
+            cat.id to CategoryCustomization(cat.id, cat.title, cat.subtitle, cat.defaultImageUrl)
+        }
+    )
+    val categoryCustomizations: StateFlow<Map<String, CategoryCustomization>> = _categoryCustomizations.asStateFlow()
+
+    fun updateCategory(categoryId: String, newTitle: String, newSubtitle: String, newImageUrl: String?) {
+        _categoryCustomizations.update { current ->
+            current + (categoryId to CategoryCustomization(categoryId, newTitle, newSubtitle, newImageUrl))
+        }
+    }
+
     private val _offerSlotProductIds = MutableStateFlow<List<String>>(emptyList())
     val offerSlotProductIds: StateFlow<List<String>> = _offerSlotProductIds.asStateFlow()
 
@@ -536,7 +630,7 @@ class StoreRepository {
                 if (slots.size < 4) {
                     slots + productId
                 } else {
-                    slots // max 4 slots
+                    slots
                 }
             }
         }
@@ -559,6 +653,36 @@ class StoreRepository {
                     product
                 }
             }
+        }
+    }
+
+    fun updateProductImage(productId: String, newImageUrl: String) {
+        _products.update { list ->
+            list.map { product ->
+                if (product.id == productId) {
+                    product.copy(imageUrl = newImageUrl)
+                } else {
+                    product
+                }
+            }
+        }
+    }
+
+    fun updateProduct(product: Product) {
+        _products.update { list ->
+            list.map { if (it.id == product.id) product else it }
+        }
+    }
+
+    fun deleteProduct(productId: String) {
+        _products.update { list ->
+            list.filter { it.id != productId }
+        }
+        _offerSlotProductIds.update { slots ->
+            slots.filter { it != productId }
+        }
+        _cart.update { cart ->
+            cart - productId
         }
     }
 

@@ -57,8 +57,8 @@ import coil.request.ImageRequest
 import com.example.data.model.CartItem
 import com.example.data.model.Currency
 import com.example.data.model.OrderSubmission
-import com.example.data.model.PaymentMethod
 import com.example.data.model.Product
+import com.example.data.model.WalletAccount
 import com.example.ui.theme.Amber400
 import com.example.ui.theme.Amber500
 import com.example.ui.theme.Amber950
@@ -88,11 +88,12 @@ fun CartScreen(
     currency: Currency,
     defaultLocation: String,
     storeWhatsApp: String,
+    walletAccounts: List<WalletAccount> = emptyList(),
     onAddToCart: (Product) -> Unit,
     onDecrement: (Product) -> Unit,
     onRemoveFromCart: (Product) -> Unit,
     onClearCart: () -> Unit,
-    onSubmitOrder: (String, String, String, String, PaymentMethod) -> OrderSubmission?,
+    onSubmitOrder: (String, String, String, String, String, String?) -> OrderSubmission?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -101,7 +102,10 @@ fun CartScreen(
     var customerPhone by remember { mutableStateOf("") }
     var deliveryAddress by remember { mutableStateOf(defaultLocation) }
     var deliveryNotes by remember { mutableStateOf("") }
-    var selectedPayment by remember { mutableStateOf(PaymentMethod.CASH_ON_DELIVERY) }
+    // Default to Cash or first wallet
+    var selectedWalletId by remember(walletAccounts) {
+        mutableStateOf(walletAccounts.firstOrNull { it.id == "w_cash" }?.id ?: walletAccounts.firstOrNull()?.id ?: "cash")
+    }
     var validationError by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
@@ -463,42 +467,84 @@ fun CartScreen(
 
                         // Payment Methods
                         Text(
-                            text = "طريقة الدفع:",
+                            text = "طريقة الدفع والحسابات الإلكترونية:",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Stone900
                         )
 
-                        PaymentMethod.values().forEach { method ->
-                            val isSelected = method == selectedPayment
-                            Row(
+                        walletAccounts.filter { it.isEnabled }.forEach { wallet ->
+                            val isSelected = wallet.id == selectedWalletId
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(if (isSelected) Emerald50 else Stone100)
-                                    .border(1.dp, if (isSelected) Emerald300 else Stone200, RoundedCornerShape(10.dp))
-                                    .clickable { selectedPayment = method }
-                                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .border(1.dp, if (isSelected) Emerald600 else Stone200, RoundedCornerShape(12.dp))
+                                    .clickable { selectedWalletId = wallet.id }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp)
                             ) {
-                                RadioButton(
-                                    selected = isSelected,
-                                    onClick = { selectedPayment = method },
-                                    colors = RadioButtonDefaults.colors(selectedColor = Emerald800)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Column {
-                                    Text(
-                                        text = method.title,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium,
-                                        color = if (isSelected) Emerald950 else Stone900
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = isSelected,
+                                        onClick = { selectedWalletId = wallet.id },
+                                        colors = RadioButtonDefaults.colors(selectedColor = Emerald800)
                                     )
-                                    Text(
-                                        text = method.subtitle,
-                                        fontSize = 9.sp,
-                                        color = Stone500
-                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = wallet.name,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                            color = if (isSelected) Emerald950 else Stone900
+                                        )
+                                        if (wallet.accountNumber != "عند الاستلام") {
+                                            Text(
+                                                text = "رقم الحساب/المحفظة: ${wallet.accountNumber}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Emerald900
+                                            )
+                                        }
+                                        if (wallet.accountHolder.isNotBlank() && wallet.accountNumber != "عند الاستلام") {
+                                            Text(
+                                                text = "باسم: ${wallet.accountHolder}",
+                                                fontSize = 9.5.sp,
+                                                color = Stone500
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (isSelected && wallet.accountNumber != "عند الاستلام") {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(White)
+                                            .border(1.dp, Emerald300, RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = "📌 تفاصيل التحويل: حول إلى ${wallet.name} برقم: ${wallet.accountNumber}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Emerald900
+                                            )
+                                            if (wallet.note.isNotBlank()) {
+                                                Text(
+                                                    text = wallet.note,
+                                                    fontSize = 9.sp,
+                                                    color = Stone500
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -530,12 +576,19 @@ fun CartScreen(
                                     return@Button
                                 }
 
+                                val chosenWallet = walletAccounts.find { it.id == selectedWalletId }
+                                val paymentName = chosenWallet?.name ?: "الدفع نقداً عند الاستلام"
+                                val walletDetails = if (chosenWallet != null && chosenWallet.accountNumber != "عند الاستلام") {
+                                    "${chosenWallet.name} - رقم: ${chosenWallet.accountNumber} (باسم: ${chosenWallet.accountHolder})"
+                                } else null
+
                                 val order = onSubmitOrder(
                                     customerName,
                                     customerPhone,
                                     deliveryAddress,
                                     deliveryNotes,
-                                    selectedPayment
+                                    paymentName,
+                                    walletDetails
                                 )
 
                                 if (order != null) {

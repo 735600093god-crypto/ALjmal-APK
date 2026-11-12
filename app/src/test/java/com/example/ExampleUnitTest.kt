@@ -3,7 +3,6 @@ package com.example
 import com.example.data.model.CartItem
 import com.example.data.model.Currency
 import com.example.data.model.OrderSubmission
-import com.example.data.model.PaymentMethod
 import com.example.data.model.ProductCategory
 import com.example.data.repository.StoreRepository
 import org.junit.Assert.assertEquals
@@ -56,7 +55,8 @@ class ExampleUnitTest {
             customerPhone = "776662630",
             deliveryAddress = "صنعاء - حدة",
             deliveryNotes = "سريع",
-            paymentMethod = PaymentMethod.CASH_ON_DELIVERY,
+            paymentMethodName = "الدفع نقداً عند الاستلام",
+            walletDetails = null,
             items = listOf(CartItem(product1, 2)),
             subtotalYer = 56.0,
             deliveryFeeYer = 5.0,
