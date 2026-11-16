@@ -85,7 +85,6 @@ fun HomeScreen(
     onDecrement: (Product) -> Unit,
     onToggleFavorite: (Product) -> Unit,
     onLocationClick: () -> Unit,
-    onManageSlotsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -282,12 +281,11 @@ fun HomeScreen(
             )
         }
 
-        // 3. Special Offers 4-slot Section
+        // 3. Special Offers Section (managed via Account -> Admin Panel)
         item {
             SpecialOffersSection(
                 slotProducts = slotProducts,
                 currency = currency,
-                onManageSlotsClick = onManageSlotsClick,
                 onProductClick = onProductClick,
                 onAddToCart = onAddToCart
             )

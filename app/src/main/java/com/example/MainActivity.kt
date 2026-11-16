@@ -31,9 +31,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,9 +45,19 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.credentials.CredentialManager
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.data.model.Currency
+import com.example.data.remote.CloudStoreRepository
+import com.example.data.repository.StoreRepository
+import com.example.data.security.AdminSecurityManager
+import com.example.ui.auth.AuthScreen
+import com.example.ui.auth.authStateFlow
+import com.example.ui.auth.signOut
 import com.example.ui.components.AdminLoginDialog
 import com.example.ui.components.BottomNavBar
 import com.example.ui.components.LocationPickerDialog
@@ -65,6 +79,10 @@ import com.example.ui.theme.Stone900
 import com.example.ui.theme.White
 import com.example.ui.viewmodel.AppTab
 import com.example.ui.viewmodel.StoreViewModel
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,7 +92,7 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 // Ensure natural RTL reading flow for Arabic e-commerce app
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    AlJamalStoreApp()
+                    AppNavigation()
                 }
             }
         }
@@ -82,9 +100,47 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun AppNavigation() {
+    val auth = Firebase.auth
+    val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
+    val user = currentUser
+
+    if (user == null) {
+        AuthScreen()
+    } else {
+        key(user.uid) {
+            AlJamalStoreApp(currentUser = user)
+        }
+    }
+}
+
+@Composable
 fun AlJamalStoreApp(
-    viewModel: StoreViewModel = viewModel()
+    currentUser: FirebaseUser
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val credentialManager = remember(context) { CredentialManager.create(context) }
+
+    val viewModel: StoreViewModel = viewModel(
+        key = currentUser.uid,
+        factory = viewModelFactory {
+            initializer {
+                val app = checkNotNull(this[APPLICATION_KEY]) {
+                    "APPLICATION_KEY missing from CreationExtras"
+                }
+                val databaseId = app.getString(R.string.firestore_database_id)
+                val db = FirebaseFirestore.getInstance(databaseId)
+                StoreViewModel(
+                    repository = StoreRepository(),
+                    cloudRepository = CloudStoreRepository(db),
+                    securityManager = AdminSecurityManager(app),
+                    currentUser = currentUser
+                )
+            }
+        }
+    )
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Handle back button: return to Home tab if on another screen
@@ -146,14 +202,7 @@ fun AlJamalStoreApp(
                         onAddToCart = { viewModel.addToCart(it.id) },
                         onDecrement = { viewModel.decrementFromCart(it.id) },
                         onToggleFavorite = { viewModel.toggleFavorite(it.id) },
-                        onLocationClick = { viewModel.openLocationPicker() },
-                        onManageSlotsClick = {
-                            if (uiState.isAdminUnlocked) {
-                                viewModel.selectTab(AppTab.ACCOUNT)
-                            } else {
-                                viewModel.openAdminLogin()
-                            }
-                        }
+                        onLocationClick = { viewModel.openLocationPicker() }
                     )
                 }
 
@@ -177,6 +226,7 @@ fun AlJamalStoreApp(
                         cartMap = cartQuantities,
                         favorites = uiState.favorites,
                         currency = uiState.currency,
+                        categoryCustomizations = uiState.categoryCustomizations,
                         onCategorySelected = { viewModel.selectCategory(it) },
                         onProductClick = { viewModel.openProductDetail(it) },
                         onAddToCart = { viewModel.addToCart(it.id) },
@@ -199,8 +249,19 @@ fun AlJamalStoreApp(
                         onDecrement = { viewModel.decrementFromCart(it.id) },
                         onRemoveFromCart = { viewModel.removeFromCart(it.id) },
                         onClearCart = { viewModel.clearCart() },
-                        onSubmitOrder = { name, phone, address, notes, payMethod, walletInfo ->
-                            viewModel.submitOrder(name, phone, address, notes, payMethod, walletInfo)
+                        onSubmitOrder = { cName, cPhone, rName, rPhone, address, mapsUrl, notes, payMethod, walletInfo, txNumber ->
+                            viewModel.submitOrder(
+                                customerName = cName,
+                                customerPhone = cPhone,
+                                recipientName = rName,
+                                recipientPhone = rPhone,
+                                deliveryAddress = address,
+                                googleMapsLocationUrl = mapsUrl,
+                                deliveryNotes = notes,
+                                paymentMethodName = payMethod,
+                                walletDetails = walletInfo,
+                                paymentTransactionNumber = txNumber
+                            )
                         }
                     )
                 }
@@ -216,11 +277,24 @@ fun AlJamalStoreApp(
                         storePhone = viewModel.repository.storePhone,
                         storeWhatsApp = viewModel.repository.storeWhatsApp,
                         storeLocation = viewModel.repository.storeLocation,
-                        adminPin = uiState.adminPin,
+                        adminWebUrl = viewModel.repository.adminWebDashboardUrl,
+                        signedInUserEmail = uiState.signedInUserEmail,
+                        isCloudAdminAuthorized = uiState.isCloudAdminAuthorized,
+                        hasUnsavedAdminChanges = uiState.hasUnsavedAdminChanges,
+                        pendingAdminChanges = uiState.pendingAdminChanges,
+                        cloudSyncStatus = uiState.cloudSyncStatus,
+                        cloudSyncMetadata = uiState.cloudSyncMetadata,
+                        firewallState = uiState.firewallState,
                         walletAccounts = uiState.walletAccounts,
                         categoryCustomizations = uiState.categoryCustomizations,
                         onUnlockAdminRequest = { viewModel.openAdminLogin() },
                         onLockAdmin = { viewModel.lockAdmin() },
+                        onSignOutClick = {
+                            viewModel.lockAdmin()
+                            signOut(credentialManager = credentialManager, scope = scope)
+                        },
+                        onSaveAndSyncToCloud = { viewModel.saveAndSyncWorkToCloud() },
+                        onDiscardPendingChanges = { viewModel.discardPendingAdminChanges() },
                         onToggleOfferSlot = { viewModel.toggleOfferSlot(it) },
                         onUpdatePrice = { id, p, orig -> viewModel.updateProductPrice(id, p, orig) },
                         onUpdateProductImage = { id, imgUri -> viewModel.updateProductImage(id, imgUri) },
@@ -230,7 +304,9 @@ fun AlJamalStoreApp(
                         onAddWalletAccount = { viewModel.addWalletAccount(it) },
                         onUpdateWalletAccount = { viewModel.updateWalletAccount(it) },
                         onDeleteWalletAccount = { viewModel.deleteWalletAccount(it) },
-                        onChangeAdminPin = { viewModel.changeAdminPin(it) },
+                        onChangeAdminPassword = { currentPwd, newPwd ->
+                            viewModel.changeAdminPassword(currentPwd, newPwd)
+                        },
                         onProductClick = { viewModel.openProductDetail(it) },
                         onAddToCart = { viewModel.addToCart(it.id) },
                         onDecrement = { viewModel.decrementFromCart(it.id) },
@@ -266,10 +342,12 @@ fun AlJamalStoreApp(
         )
     }
 
-    // 3. Admin / Manager Login
+    // 3. Admin / Manager Login with Anti-Intrusion Firewall
     if (uiState.showAdminLogin) {
         AdminLoginDialog(
-            expectedPin = uiState.adminPin,
+            firewallState = uiState.firewallState,
+            onVerifyPassword = { candidate -> viewModel.verifyAdminPassword(candidate) },
+            onRefreshFirewall = { viewModel.refreshFirewallState() },
             onSuccess = {
                 viewModel.unlockAdmin()
                 viewModel.selectTab(AppTab.ACCOUNT)
@@ -334,9 +412,21 @@ fun AlJamalStoreApp(
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text("رقم الطلب: ${order.orderId}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Stone900)
-                                Text("الاسم: ${order.customerName}", fontSize = 11.sp, color = Stone700)
-                                Text("العنوان: ${order.deliveryAddress}", fontSize = 11.sp, color = Stone700)
-                                Text("المبلغ الإجمالي: ${order.totalYer.toInt()} ر.ي", fontSize = 11.sp, fontWeight = FontWeight.Black, color = Emerald800)
+                                Text("الزبون: ${order.customerName} (${order.customerPhone})", fontSize = 11.sp, color = Stone700)
+                                if (order.recipientName.isNotBlank() || order.recipientPhone.isNotBlank()) {
+                                    Text("المستلم: ${order.recipientName} ${order.recipientPhone}", fontSize = 11.sp, color = Stone700)
+                                }
+                                if (order.deliveryAddress.isNotBlank()) {
+                                    Text("العنوان: ${order.deliveryAddress}", fontSize = 11.sp, color = Stone700)
+                                }
+                                if (order.googleMapsLocationUrl.isNotBlank()) {
+                                    Text("تم إرفاق لوكيشن خرائط جوجل المباشر ✓", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Emerald800)
+                                }
+                                Text("الدفع: ${order.paymentMethodName}", fontSize = 11.sp, color = Stone700)
+                                if (order.paymentTransactionNumber.isNotBlank()) {
+                                    Text("رقم العملية: ${order.paymentTransactionNumber}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Stone900)
+                                }
+                                Text("المجموع الإجمالي: ${order.totalYer.toInt()} ر.ي", fontSize = 11.5.sp, fontWeight = FontWeight.Black, color = Emerald800)
                             }
                         }
                     }

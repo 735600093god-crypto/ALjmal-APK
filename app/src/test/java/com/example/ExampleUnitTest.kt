@@ -53,10 +53,14 @@ class ExampleUnitTest {
             orderId = "JM-1234",
             customerName = "عبدالرحمن",
             customerPhone = "776662630",
+            recipientName = "أحمد (الحارس)",
+            recipientPhone = "771112233",
             deliveryAddress = "صنعاء - حدة",
+            googleMapsLocationUrl = "https://maps.google.com/?q=15.3694,44.1910",
             deliveryNotes = "سريع",
-            paymentMethodName = "الدفع نقداً عند الاستلام",
-            walletDetails = null,
+            paymentMethodName = "محفظة جيب (Jeeb)",
+            walletDetails = "محفظة جيب (Jeeb) - رقم: 776662630",
+            paymentTransactionNumber = "987654321",
             items = listOf(CartItem(product1, 2)),
             subtotalYer = 56.0,
             deliveryFeeYer = 5.0,
@@ -67,6 +71,10 @@ class ExampleUnitTest {
         assertTrue(message.contains("متجر الجمل"))
         assertTrue(message.contains("عبدالرحمن"))
         assertTrue(message.contains("776662630"))
+        assertTrue(message.contains("أحمد (الحارس)"))
+        assertTrue(message.contains("771112233"))
+        assertTrue(message.contains("https://maps.google.com/?q=15.3694,44.1910"))
+        assertTrue(message.contains("987654321"))
         assertTrue(message.contains("61"))
     }
 
@@ -83,5 +91,57 @@ class ExampleUnitTest {
 
         val usdPrice = product.getFormattedPrice(Currency.USD)
         assertTrue(usdPrice.contains("$"))
+    }
+
+    @Test
+    fun testAdminPasswordAndFirewallLockout() {
+        val targetPassword = com.example.data.security.AdminSecurityManager.DEFAULT_ADMIN_PASSWORD
+        assertEquals("!Admin@Aljamal2026", targetPassword)
+
+        val hash1 = com.example.data.security.AdminSecurityManager.sha256Hex("salt1234", targetPassword)
+        val hash2 = com.example.data.security.AdminSecurityManager.sha256Hex("salt1234", "!Admin@Aljamal2026")
+        val wrongHash = com.example.data.security.AdminSecurityManager.sha256Hex("salt1234", "00967776662630")
+
+        assertEquals(64, hash1.length)
+        assertTrue(com.example.data.security.AdminSecurityManager.constantTimeEquals(hash1, hash2))
+        assertTrue(!com.example.data.security.AdminSecurityManager.constantTimeEquals(hash1, wrongHash))
+        assertTrue(com.example.data.security.AdminSecurityManager.isSafeImageUrl("https://example.com/a.jpg"))
+        assertTrue(com.example.data.security.AdminSecurityManager.isSafeImageUrl("data:image/jpeg;base64,/9j/4AAQ"))
+        assertTrue(!com.example.data.security.AdminSecurityManager.isSafeImageUrl("javascript:alert(1)"))
+    }
+
+    @Test
+    fun testPendingAdminChangesTracking() {
+        val repository = StoreRepository()
+        assertEquals(false, repository.hasUnsavedChanges.value)
+
+        repository.updateProductPrice("p1", 32.0, 40.0)
+        assertEquals(true, repository.hasUnsavedChanges.value)
+        assertTrue(repository.pendingChangeSummaries.value.isNotEmpty())
+
+        repository.markWorkSavedAndSynced()
+        assertEquals(false, repository.hasUnsavedChanges.value)
+        assertTrue(repository.pendingChangeSummaries.value.isEmpty())
+    }
+
+    @Test
+    fun testAdminWebDashboardLinkAndCloudOrdering() {
+        val repository = StoreRepository()
+        assertEquals("https://spiffy-sawine-8f76cc.netlify.app", repository.adminWebDashboardUrl)
+        assertEquals("akrmshaker8@gmail.com", com.example.data.remote.CloudStoreRepository.BOOTSTRAPPED_ADMIN_EMAIL)
+        assertEquals("gen-lang-client-0198222948", com.example.data.remote.CloudStoreRepository.FIREBASE_PROJECT_ID)
+        assertEquals("1:315465823648:web:aac7daf4a26ea4d20920c5", com.example.data.remote.CloudStoreRepository.FIREBASE_WEB_APP_ID)
+
+        val defaultOne = repository.products.value.first { it.id == "p1" }
+        val defaultTwo = repository.products.value.first { it.id == "p2" }
+        val webAdded = defaultOne.copy(id = "p_1760000000000", name = "منتج مضاف من الويب")
+
+        // Firestore returns doc IDs out of catalog order; applyCloudProducts must keep custom web products on top
+        repository.applyCloudProducts(listOf(defaultTwo, defaultOne, webAdded))
+        val updated = repository.products.value
+        assertEquals(3, updated.size)
+        assertEquals("p_1760000000000", updated[0].id)
+        assertEquals("p1", updated[1].id)
+        assertEquals("p2", updated[2].id)
     }
 }

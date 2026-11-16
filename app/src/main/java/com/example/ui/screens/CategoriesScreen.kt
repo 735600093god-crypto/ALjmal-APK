@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.CategoryCustomization
 import com.example.data.model.Currency
 import com.example.data.model.Product
 import com.example.data.model.ProductCategory
@@ -57,6 +58,7 @@ fun CategoriesScreen(
     cartMap: Map<String, Int>,
     favorites: Set<String>,
     currency: Currency,
+    categoryCustomizations: Map<String, CategoryCustomization> = emptyMap(),
     onCategorySelected: (ProductCategory?) -> Unit,
     onProductClick: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
@@ -66,6 +68,9 @@ fun CategoriesScreen(
 ) {
     val activeCategory = selectedCategory ?: ProductCategory.LOCAL_FRUITS
     val categoryProducts = products.filter { it.category == activeCategory }
+    val activeCustom = categoryCustomizations[activeCategory.id]
+    val activeTitle = activeCustom?.customTitle ?: activeCategory.title
+    val activeSubtitle = activeCustom?.customSubtitle ?: activeCategory.subtitle
 
     Column(
         modifier = modifier
@@ -81,13 +86,14 @@ fun CategoriesScreen(
         ) {
             ProductCategory.values().forEach { cat ->
                 val isSelected = cat == activeCategory
+                val catTitle = categoryCustomizations[cat.id]?.customTitle ?: cat.title
                 Tab(
                     selected = isSelected,
                     onClick = { onCategorySelected(cat) },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = cat.title,
+                                text = catTitle,
                                 fontWeight = if (isSelected) FontWeight.Black else FontWeight.Medium,
                                 fontSize = 12.sp,
                                 color = if (isSelected) Emerald900 else Stone500
@@ -161,13 +167,13 @@ fun CategoriesScreen(
 
                         Column {
                             Text(
-                                text = "${activeCategory.title} (${categoryProducts.size} صنف)",
+                                text = "$activeTitle (${categoryProducts.size} صنف)",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Stone900
                             )
                             Text(
-                                text = activeCategory.subtitle,
+                                text = activeSubtitle,
                                 fontSize = 11.sp,
                                 color = Stone500
                             )

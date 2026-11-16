@@ -1,0 +1,2455 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة تحكم المدير | متجر الجمل للخضار والفواكه والتمور</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --emerald-950: #022C22;
+      --emerald-900: #064E3B;
+      --emerald-800: #065F46;
+      --emerald-700: #047857;
+      --emerald-100: #D1FAE5;
+      --emerald-50: #ECFDF5;
+      --amber-950: #451A03;
+      --amber-500: #F59E0B;
+      --amber-400: #FBBF24;
+      --amber-100: #FEF3C7;
+      --stone-950: #0C0A09;
+      --stone-900: #1C1917;
+      --stone-700: #44403C;
+      --stone-500: #78716C;
+      --stone-400: #A8A29E;
+      --stone-200: #E7E5E4;
+      --stone-100: #F5F5F4;
+      --red-600: #DC2626;
+      --red-500: #EF4444;
+      --red-50: #FEF2F2;
+      --white: #FFFFFF;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --shadow-sm: 0 2px 10px rgba(2, 44, 34, 0.06);
+      --shadow-md: 0 10px 30px rgba(2, 44, 34, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Cairo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: var(--stone-100);
+      color: var(--stone-900);
+      min-height: 100vh;
+      line-height: 1.55;
+    }
+
+    .hidden { display: none !important; }
+
+    /* ===== AUTH LOGIN SCREEN ===== */
+    .auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(160deg, var(--emerald-950) 0%, var(--emerald-900) 55%, var(--stone-100) 100%);
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 450px;
+      background: var(--white);
+      border-radius: 26px;
+      padding: 28px 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      text-align: center;
+    }
+
+    .logo-circle {
+      width: 84px;
+      height: 84px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      border: 3px solid var(--amber-400);
+      background: var(--emerald-50);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .auth-title {
+      font-size: 21px;
+      font-weight: 900;
+      color: var(--emerald-950);
+    }
+
+    .auth-subtitle {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--stone-500);
+      margin-bottom: 18px;
+    }
+
+    .security-highlights {
+      background: var(--emerald-50);
+      border: 1px solid var(--emerald-100);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      text-align: right;
+      margin-bottom: 18px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--emerald-900);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group {
+      text-align: right;
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--stone-700);
+      margin-bottom: 4px;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--stone-200);
+      background: var(--white);
+      color: var(--stone-900);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--emerald-700);
+      box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
+    }
+
+    .toggle-pwd-btn {
+      position: absolute;
+      left: 8px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--stone-500);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.08s ease, opacity 0.2s ease, background 0.2s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary { background: var(--emerald-800); color: var(--white); }
+    .btn-primary:hover:not(:disabled) { background: var(--emerald-900); }
+    .btn-amber { background: var(--amber-400); color: var(--stone-950); }
+    .btn-amber:hover:not(:disabled) { background: var(--amber-500); }
+    .btn-outline { background: var(--white); color: var(--stone-700); border: 1.5px solid var(--stone-200); }
+    .btn-outline:hover:not(:disabled) { background: var(--stone-100); }
+    .btn-danger { background: var(--red-50); color: var(--red-600); border: 1px solid rgba(220, 38, 38, 0.25); }
+    .btn-danger:hover:not(:disabled) { background: #FEE2E2; }
+    .btn-sm { padding: 6px 10px; font-size: 11.5px; border-radius: 8px; }
+    .btn-full { width: 100%; height: 46px; }
+
+    .alert-box {
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-align: right;
+    }
+    .alert-error { background: var(--red-50); color: var(--red-600); border: 1px solid #FECACA; }
+    .alert-success { background: var(--emerald-100); color: var(--emerald-900); border: 1px solid #A7F3D0; }
+    .alert-warning { background: var(--amber-100); color: var(--amber-950); border: 1px solid var(--amber-400); }
+
+    /* ===== DASHBOARD SHELL ===== */
+    .app-container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 16px 14px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--stone-200);
+    }
+
+    .top-identity-card {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: linear-gradient(135deg, var(--emerald-950), var(--emerald-900));
+      color: var(--white);
+      border: 1.5px solid var(--amber-400);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--white);
+      border: 2px solid var(--amber-400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .brand-title { font-size: 16px; font-weight: 900; color: var(--white); }
+    .brand-meta { font-size: 11.5px; color: #D1FAE5; font-weight: 600; }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .pill-shield { background: rgba(251, 191, 36, 0.2); color: var(--amber-400); border: 1px solid rgba(251, 191, 36, 0.5); }
+    .pill-err { background: var(--red-50); color: var(--red-600); }
+
+    /* ===== SAVE WORK & CLOUD SYNC CARD ===== */
+    .sync-card {
+      border: 2px solid var(--emerald-700);
+      background: var(--emerald-50);
+      transition: all 0.2s ease;
+    }
+
+    .sync-card.has-unsaved {
+      border-color: var(--amber-500);
+      background: var(--amber-100);
+    }
+
+    .sync-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .sync-title { font-size: 15px; font-weight: 900; color: var(--stone-900); }
+    .sync-subtitle { font-size: 12px; font-weight: 700; color: var(--emerald-900); }
+    .sync-card.has-unsaved .sync-subtitle { color: var(--amber-950); }
+
+    .pending-list {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--stone-900);
+    }
+
+    .pending-list ul {
+      list-style: disc;
+      padding-right: 18px;
+      margin-top: 4px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .sync-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* ===== ADMIN TABS ===== */
+    .tabs-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .tabs-bar {
+      display: flex;
+      overflow-x: auto;
+      background: var(--emerald-900);
+      padding: 0 8px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.85);
+      padding: 13px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .tab-btn.active {
+      color: var(--amber-400);
+      font-weight: 900;
+      border-bottom-color: var(--amber-400);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .tab-content {
+      padding: 16px;
+    }
+
+    .section-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .search-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .search-filter-row .form-input { flex: 2; min-width: 200px; }
+    .search-filter-row .form-select { flex: 1; min-width: 160px; }
+
+    /* ===== GRID & ITEMS ===== */
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 10px;
+    }
+
+    .item-card {
+      background: var(--stone-100);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--stone-200);
+    }
+
+    .item-thumb-wrap {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--stone-200);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .item-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumb-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--amber-400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .item-thumb-wrap:hover .thumb-overlay { opacity: 1; }
+
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-size: 13.5px; font-weight: 800; color: var(--stone-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-sub { font-size: 11px; color: var(--stone-500); font-weight: 600; }
+    .item-price-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+    .price-now { font-size: 13.5px; font-weight: 900; color: var(--emerald-900); }
+    .price-old { font-size: 11px; color: var(--stone-400); text-decoration: line-through; }
+
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .icon-circle-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: transform 0.1s;
+    }
+    .icon-circle-btn:active { transform: scale(0.92); }
+    .bg-amber-soft { background: var(--amber-100); color: var(--amber-950); }
+    .bg-emerald-soft { background: var(--emerald-100); color: var(--emerald-900); }
+    .bg-red-soft { background: var(--red-50); color: var(--red-600); }
+
+    /* ===== OFFERS TAB ===== */
+    .offer-row {
+      background: var(--stone-100);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      border: 1px solid var(--stone-200);
+    }
+
+    .offer-row.selected {
+      background: var(--amber-100);
+      border-color: var(--amber-400);
+    }
+
+    .offer-check-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .offer-check-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--amber-500);
+      cursor: pointer;
+    }
+
+    /* ===== SECURITY LOGS & PIN LOCK OVERLAY ===== */
+    .firewall-card {
+      background: var(--emerald-50);
+      border: 1px solid #6EE7B7;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .log-item {
+      background: var(--stone-100);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11.5px;
+      margin-bottom: 6px;
+      border-right: 3px solid var(--emerald-700);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .log-item.warn { border-right-color: var(--red-500); background: var(--red-50); }
+
+    /* ===== MODALS ===== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 44, 34, 0.55);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--white);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .modal-title { font-size: 16px; font-weight: 900; color: var(--stone-900); }
+
+    .upload-dropzone {
+      border: 2px dashed var(--amber-400);
+      background: var(--stone-100);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    .upload-dropzone img {
+      max-height: 140px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-bottom: 6px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .two-col { grid-template-columns: 1fr; }
+      .items-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================================================================== -->
+  <!-- 1. شاشة تسجيل الدخول (Email & Password Firebase Auth)               -->
+  <!-- ===================================================================== -->
+  <section id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="logo-circle">🌴</div>
+      <h1 class="auth-title">متجر الجمل</h1>
+      <p class="auth-subtitle">لوحة تحكم المدير السحابية — للخضار والفواكه والتمور</p>
+
+      <div class="security-highlights">
+        <div>🛡️ اتصال مشفّر ومصادقة Firebase Authentication</div>
+        <div>☁️ مزامنة فورية للأسعار والعروض والأقسام والمحافظ مع تطبيق الأندرويد</div>
+        <div>🔒 محمي بقواعد أمان Zero-Trust Firestore Security Rules</div>
+      </div>
+
+      <div id="auth-error" class="alert-box alert-error hidden"></div>
+      <div id="config-warning" class="alert-box alert-warning hidden"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-email">البريد الإلكتروني للمدير</label>
+          <input id="login-email" type="email" class="form-input" value="akrmshaker8@gmail.com" placeholder="akrmshaker8@gmail.com" autocomplete="email" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">كلمة المرور</label>
+          <div class="input-wrap">
+            <input id="login-password" type="password" class="form-input" placeholder="••••••••" autocomplete="current-password" required />
+            <button type="button" id="toggle-login-pwd" class="toggle-pwd-btn">إظهار</button>
+          </div>
+        </div>
+
+        <button type="submit" id="login-submit-btn" class="btn btn-primary btn-full">
+          تسجيل الدخول إلى لوحة التحكم
+        </button>
+      </form>
+
+      <p style="margin-top:14px;font-size:11px;color:var(--stone-500);font-weight:700;">
+        صنعاء - حدة داخل التوفير هايبر • 776662630
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 2. بوابة التحقق الإضافية برمز المدير (Anti-Intrusion Firewall PIN)   -->
+  <!-- ===================================================================== -->
+  <section id="pin-lock-screen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="logo-circle">🔐</div>
+      <h2 class="auth-title">مصادقة المدير المحمية</h2>
+      <p class="auth-subtitle" id="pin-user-email">تم التحقق من الحساب</p>
+
+      <div id="pin-firewall-badge" class="alert-box alert-success">
+        جدار الحماية نشط • التشفير: SHA-256 + حظر التخمين
+      </div>
+
+      <div id="pin-error-box" class="alert-box alert-error hidden"></div>
+
+      <form id="pin-form">
+        <div class="form-group">
+          <label class="form-label" for="admin-pin-input">كلمة سر لوحة تحكم المدير</label>
+          <div class="input-wrap">
+            <input id="admin-pin-input" type="password" class="form-input" placeholder="أدخل كلمة سر المدير" required />
+            <button type="button" id="toggle-pin-pwd" class="toggle-pwd-btn">إظهار</button>
+          </div>
+        </div>
+
+        <button type="submit" id="pin-submit-btn" class="btn btn-primary btn-full">
+          تحقق وفتح لوحة التحكم
+        </button>
+      </form>
+
+      <button type="button" id="pin-signout-btn" class="btn btn-outline btn-full" style="margin-top:8px;">
+        تسجيل الخروج من الحساب
+      </button>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- 3. لوحة تحكم المدير الرئيسية (مطابقة تماماً للوحة التطبيق)          -->
+  <!-- ===================================================================== -->
+  <main id="dashboard-screen" class="app-container hidden">
+
+    <!-- بطاقة الهوية والاتصال -->
+    <header class="card top-identity-card">
+      <div class="brand-row">
+        <div class="brand-badge">🌴</div>
+        <div>
+          <div class="brand-title">لوحة تحكم المدير — متجر الجمل</div>
+          <div class="brand-meta">صنعاء - حدة داخل التوفير هايبر • الحساب المتصل: <span id="signed-in-email"></span></div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <span class="pill pill-shield">🛡️ جدار الحماية نشط</span>
+        <span id="admin-verified-pill" class="pill hidden" style="background:var(--emerald-100);color:var(--emerald-900);">👑 مدير النظام: akrmshaker8@gmail.com ✓</span>
+        <span id="admin-auth-badge" class="pill pill-err hidden">⚠️ الحساب غير مفعّل أو غير مخول للنشر</span>
+        <button type="button" id="lock-pin-btn" class="btn btn-amber btn-sm">🔒 قفل اللوحة</button>
+        <button type="button" id="logout-btn" class="btn btn-outline btn-sm">🚪 خروج</button>
+      </div>
+    </header>
+
+    <!-- تنبيه تفعيل البريد الإلكتروني إذا لم يكن مفعلاً في Firebase Auth -->
+    <div id="email-verify-banner" class="alert-box alert-warning hidden" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <span>⚠️ البريد الإلكتروني غير مؤكد في Firebase Auth (مطلوب في قواعد الأمان لنشر التعديلات).</span>
+      <div style="display:flex;gap:6px;">
+        <button type="button" id="send-verify-email-btn" class="btn btn-amber btn-sm">إرسال رابط التفعيل</button>
+        <button type="button" id="reload-auth-btn" class="btn btn-outline btn-sm">تحديث الحالة</button>
+      </div>
+    </div>
+
+    <!-- قائمة حفظ العمل والمزامنة السحابية -->
+    <section id="sync-menu-card" class="card sync-card">
+      <div class="sync-header">
+        <div>
+          <div class="sync-title">☁️ قائمة حفظ العمل والمزامنة السحابية</div>
+          <div id="sync-status-subtitle" class="sync-subtitle">
+            اضغط حفظ ومزامنة لنشر الكتالوج على كل الأجهزة المتصلة بالإنترنت
+          </div>
+          <div style="font-size:11px;font-weight:800;color:var(--emerald-800);margin-top:4px;">
+            🔗 مرتبط ومتزامن مع تطبيق متجر الجمل عبر: spiffy-sawine-8f76cc.netlify.app
+          </div>
+        </div>
+        <div id="sync-version-pill" class="pill" style="background:var(--white);color:var(--emerald-900);border:1px solid var(--emerald-700);">
+          الإصدار #0
+        </div>
+      </div>
+
+      <div id="pending-changes-box" class="pending-list hidden">
+        <div>الأعمال والتعديلات المعلقة للحفظ (<span id="pending-count">0</span>):</div>
+        <ul id="pending-changes-ul"></ul>
+      </div>
+
+      <div id="sync-feedback-box" class="alert-box hidden"></div>
+
+      <div class="sync-buttons">
+        <button type="button" id="save-sync-btn" class="btn btn-primary" style="flex:1;min-width:220px;">
+          ☁️ مزامنة فورية مع كل الأجهزة
+        </button>
+        <button type="button" id="discard-changes-btn" class="btn btn-outline hidden">
+          ↩️ تراجع عن التعديلات
+        </button>
+        <button type="button" id="seed-defaults-btn" class="btn btn-amber">
+          📦 تحميل الكتالوج الافتراضي (إذا كان فارغاً)
+        </button>
+      </div>
+    </section>
+
+    <!-- تبويبات لوحة التحكم الخمسة -->
+    <section class="card tabs-card">
+      <nav class="tabs-bar" id="admin-tabs">
+        <button type="button" class="tab-btn active" data-tab="products">المنتجات والأسعار</button>
+        <button type="button" class="tab-btn" data-tab="offers">العروض الخاصة</button>
+        <button type="button" class="tab-btn" data-tab="categories">أقسام المتجر</button>
+        <button type="button" class="tab-btn" data-tab="wallets">المحافظ والحسابات</button>
+        <button type="button" class="tab-btn" data-tab="security">الحماية وكلمة السر</button>
+      </nav>
+
+      <!-- تبويب 1: المنتجات والأسعار -->
+      <div id="tab-products" class="tab-content">
+        <div class="section-toolbar">
+          <h3 style="font-size:15px;font-weight:900;">قائمة المنتجات (<span id="products-count">0</span> صنف)</h3>
+          <button type="button" id="open-add-product-btn" class="btn btn-primary btn-sm">➕ إضافة منتج جديد</button>
+        </div>
+
+        <div class="search-filter-row">
+          <input id="product-search-input" type="text" class="form-input" placeholder="ابحث باسم المنتج أو المصدر..." />
+          <select id="product-cat-filter" class="form-select">
+            <option value="all">كل الأقسام</option>
+            <option value="local_fruits">قسم الفواكه البلدي</option>
+            <option value="imported_fruits">قسم الفواكه المستوردة</option>
+            <option value="vegetables">قسم الخضار</option>
+            <option value="premium_dates">قسم التمور</option>
+            <option value="dried_fruits">قسم الفواكه المجففة</option>
+          </select>
+        </div>
+
+        <div id="products-grid" class="items-grid"></div>
+      </div>
+
+      <!-- تبويب 2: العروض الخاصة -->
+      <div id="tab-offers" class="tab-content hidden">
+        <div class="section-toolbar">
+          <div>
+            <h3 style="font-size:15px;font-weight:900;">
+              التحكم في أصناف العروض الخاصة (<span id="offers-selected-count">0</span> من 4 خانات مختارة)
+            </h3>
+            <p style="font-size:12px;color:var(--stone-500);font-weight:600;">
+              حدد حتى 4 منتجات لتظهر في قسم العروض الخاصة بالرئيسية في تطبيق الهاتف، مع إمكانية تعديل السعر أو استبدال الصورة مباشرة.
+            </p>
+          </div>
+        </div>
+        <div id="offers-list"></div>
+      </div>
+
+      <!-- تبويب 3: أقسام المتجر -->
+      <div id="tab-categories" class="tab-content hidden">
+        <div class="section-toolbar">
+          <div>
+            <h3 style="font-size:15px;font-weight:900;">التحكم في أقسام المتجر الخمسة وتغيير صورها</h3>
+            <p style="font-size:12px;color:var(--stone-500);font-weight:600;">
+              يمكنك تبديل صور الأقسام من جهازك وتعديل أسماء الأقسام، وستنعكس فورياً في التطبيق بعد المزامنة.
+            </p>
+          </div>
+        </div>
+        <div id="categories-grid" class="items-grid"></div>
+      </div>
+
+      <!-- تبويب 4: المحافظ والحسابات -->
+      <div id="tab-wallets" class="tab-content hidden">
+        <div class="section-toolbar">
+          <h3 style="font-size:15px;font-weight:900;">أرقام حسابات المحافظ الإلكترونية (<span id="wallets-count">0</span>)</h3>
+          <button type="button" id="open-add-wallet-btn" class="btn btn-primary btn-sm">➕ إضافة محفظة جديدة</button>
+        </div>
+        <div id="wallets-grid" class="items-grid"></div>
+      </div>
+
+      <!-- تبويب 5: الحماية وكلمة السر -->
+      <div id="tab-security" class="tab-content hidden">
+        <div class="firewall-card">
+          <h3 style="font-size:14px;font-weight:900;color:var(--emerald-950);margin-bottom:6px;">
+            🛡️ جدار الحماية القوي ضد الاختراقات (مفعّل)
+          </h3>
+          <p style="font-size:12px;color:var(--stone-700);font-weight:600;">• مصادقة البريد الإلكتروني وكلمة المرور عبر Firebase Authentication.</p>
+          <p style="font-size:12px;color:var(--stone-700);font-weight:600;">• تشفير كلمة سر لوحة المدير بخوارزمية SHA-256 + Salt ومقارنة ثابتة الزمن.</p>
+          <p style="font-size:12px;color:var(--stone-700);font-weight:600;">• حظر تلقائي تصاعدي عند محاولات التخمين (بعد 3 محاولات فاشلة).</p>
+          <p style="font-size:12px;color:var(--stone-700);font-weight:600;">• قواعد أمان سحابية Zero-Trust في Firestore لمنع التعديل غير المصرح به.</p>
+          <p id="firewall-blocks-count" style="font-size:12px;font-weight:900;color:var(--emerald-800);margin-top:6px;">
+            محاولات الاختراق المحظورة محلياً: 0
+          </p>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <h4 style="font-size:14px;font-weight:900;margin-bottom:10px;">تغيير كلمة سر لوحة تحكم المدير (PIN / Password)</h4>
+          <div id="change-pin-feedback" class="alert-box hidden"></div>
+          <form id="change-pin-form">
+            <div class="two-col">
+              <div class="form-group">
+                <label class="form-label" for="old-pin-input">كلمة السر الحالية</label>
+                <input id="old-pin-input" type="password" class="form-input" placeholder="كلمة السر الحالية" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="new-pin-input">كلمة السر الجديدة (6 رموز فأكثر)</label>
+                <input id="new-pin-input" type="password" class="form-input" placeholder="مثال: !Admin@Aljamal2026" required />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">تحديث وحماية كلمة السر</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="section-toolbar">
+            <h4 style="font-size:14px;font-weight:900;">سجل الأمان ومراقبة الاختراقات</h4>
+            <button type="button" id="refresh-logs-btn" class="btn btn-outline btn-sm">🔄 تحديث السجل</button>
+          </div>
+          <div id="security-logs-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Hidden reusable file inputs for quick image replacement -->
+  <input id="quick-product-photo-input" type="file" accept="image/*" class="hidden" />
+  <input id="quick-category-photo-input" type="file" accept="image/*" class="hidden" />
+
+  <!-- ===================================================================== -->
+  <!-- MODALS (إضافة/تعديل منتج - تعديل سعر - قسم - محفظة)                   -->
+  <!-- ===================================================================== -->
+
+  <!-- Modal: Edit Price -->
+  <div id="modal-edit-price" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="edit-price-title" class="modal-title">تعديل السعر</h3>
+        <button type="button" class="btn btn-outline btn-sm close-modal-btn" data-modal="modal-edit-price">✕</button>
+      </div>
+      <form id="edit-price-form">
+        <input type="hidden" id="edit-price-id" />
+        <div class="form-group">
+          <label class="form-label" for="edit-price-value">السعر الحالي (ر.ي)</label>
+          <input id="edit-price-value" type="number" step="any" min="1" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-orig-price-value">السعر الأصلي قبل الخصم (اختياري)</label>
+          <input id="edit-orig-price-value" type="number" step="any" min="0" class="form-input" placeholder="اتركه فارغاً بدون خصم" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">حفظ التعديل</button>
+          <button type="button" class="btn btn-outline close-modal-btn" data-modal="modal-edit-price" style="flex:1;">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Product -->
+  <div id="modal-product" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="product-modal-title" class="modal-title">إضافة صنف جديد للمتجر</h3>
+        <button type="button" class="btn btn-outline btn-sm close-modal-btn" data-modal="modal-product">✕</button>
+      </div>
+      <form id="product-form">
+        <input type="hidden" id="prod-id" />
+        <label class="upload-dropzone" for="prod-image-file" style="display:block;">
+          <img id="prod-image-preview" class="hidden" alt="معاينة الصورة" />
+          <div style="font-size:12.5px;font-weight:800;color:var(--amber-950);">🖼️ اضغط لاختيار صورة المنتج من جهازك (يتم ضغطها تلقائياً)</div>
+          <input id="prod-image-file" type="file" accept="image/*" class="hidden" />
+        </label>
+
+        <div class="form-group">
+          <label class="form-label" for="prod-name">اسم المنتج</label>
+          <input id="prod-name" type="text" class="form-input" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="prod-cat">القسم</label>
+          <select id="prod-cat" class="form-select">
+            <option value="local_fruits">قسم الفواكه البلدي</option>
+            <option value="imported_fruits">قسم الفواكه المستوردة</option>
+            <option value="vegetables">قسم الخضار</option>
+            <option value="premium_dates">قسم التمور</option>
+            <option value="dried_fruits">قسم الفواكه المجففة</option>
+          </select>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label" for="prod-price">السعر (ر.ي)</label>
+            <input id="prod-price" type="number" step="any" min="1" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prod-orig-price">السعر قبل الخصم (اختياري)</label>
+            <input id="prod-orig-price" type="number" step="any" min="0" class="form-input" />
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label" for="prod-unit">الوحدة (كجم، صحن...)</label>
+            <input id="prod-unit" type="text" class="form-input" value="كجم" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="prod-origin">المصدر / المزرعة</label>
+            <input id="prod-origin" type="text" class="form-input" value="اليمن - صنعاء" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="prod-desc">وصف المنتج</label>
+          <textarea id="prod-desc" class="form-textarea" rows="2" placeholder="منتج طازج عالي الجودة من متجر الجمل."></textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">حفظ المنتج</button>
+          <button type="button" class="btn btn-outline close-modal-btn" data-modal="modal-product" style="flex:1;">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Category -->
+  <div id="modal-category" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">تعديل اسم ووصف القسم</h3>
+        <button type="button" class="btn btn-outline btn-sm close-modal-btn" data-modal="modal-category">✕</button>
+      </div>
+      <form id="category-form">
+        <input type="hidden" id="cat-edit-id" />
+        <div class="form-group">
+          <label class="form-label" for="cat-edit-title">اسم القسم</label>
+          <input id="cat-edit-title" type="text" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cat-edit-subtitle">الوصف الفرعي للقسم</label>
+          <input id="cat-edit-subtitle" type="text" class="form-input" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">حفظ التعديل</button>
+          <button type="button" class="btn btn-outline close-modal-btn" data-modal="modal-category" style="flex:1;">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Edit Wallet -->
+  <div id="modal-wallet" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="wallet-modal-title" class="modal-title">إضافة محفظة إلكترونية جديدة</h3>
+        <button type="button" class="btn btn-outline btn-sm close-modal-btn" data-modal="modal-wallet">✕</button>
+      </div>
+      <form id="wallet-form">
+        <input type="hidden" id="wallet-edit-id" />
+        <div class="form-group">
+          <label class="form-label" for="wallet-name">اسم المحفظة (مثال: محفظة جيب)</label>
+          <input id="wallet-name" type="text" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="wallet-number">رقم الحساب / رقم المحفظة</label>
+          <input id="wallet-number" type="text" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="wallet-holder">اسم صاحب الحساب</label>
+          <input id="wallet-holder" type="text" class="form-input" value="متجر الجمل" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="wallet-note">ملاحظة أو تعليمات التحويل</label>
+          <input id="wallet-note" type="text" class="form-input" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">حفظ المحفظة</button>
+          <button type="button" class="btn btn-outline close-modal-btn" data-modal="modal-wallet" style="flex:1;">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- FIREBASE SDK + LOGIC                                                  -->
+  <!-- ===================================================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      signOut,
+      sendEmailVerification
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDoc,
+      getDocs,
+      setDoc,
+      updateDoc,
+      onSnapshot,
+      query,
+      where,
+      writeBatch,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // =========================================================================
+    // [إعدادات Firebase المفعّلة لمشروع متجر الجمل - firebaseConfig]
+    // =========================================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCuC6dFG84ybphoqlTAtWOhDZmiDp8IN3A",
+      authDomain: "gen-lang-client-0198222948.firebaseapp.com",
+      projectId: "gen-lang-client-0198222948",
+      storageBucket: "gen-lang-client-0198222948.firebasestorage.app",
+      messagingSenderId: "315465823648",
+      appId: "1:315465823648:web:aac7daf4a26ea4d20920c5"
+    };
+
+    // معرّف قاعدة البيانات المرتبطة بتطبيق الأندرويد (اتركه كما هو للمزامنة مع التطبيق،
+    // أو غيّره إلى "(default)" إذا كنت تستخدم قاعدة البيانات الافتراضية فقط)
+    const FIRESTORE_DATABASE_ID = "ai-studio-android-73871b22-8152-4fd4-bf63-a428b353d554";
+    // =========================================================================
+
+    const STORE_ID = "aljamal_main";
+    const BOOTSTRAPPED_ADMIN_EMAIL = "akrmshaker8@gmail.com";
+    const DEFAULT_ADMIN_PASSWORD = "!Admin@Aljamal2026";
+    const DEFAULT_SAFE_PRODUCT_IMAGE =
+      "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80";
+
+    const DEFAULT_CATEGORIES = {
+      local_fruits: {
+        categoryId: "local_fruits",
+        customTitle: "قسم الفواكه البلدي",
+        customSubtitle: "رمان صعدي، عنب رازقي، مانجو، شمام، تين",
+        customImageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80"
+      },
+      imported_fruits: {
+        categoryId: "imported_fruits",
+        customTitle: "قسم الفواكه المستوردة",
+        customSubtitle: "تفاح واشنطن، أفوكادو، موز، كيوي، أناناس",
+        customImageUrl: "https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=600&q=80"
+      },
+      vegetables: {
+        categoryId: "vegetables",
+        customTitle: "قسم الخضار",
+        customSubtitle: "طماطم، خيار، ورقيات، بطاطس، كوسة، بروكلي",
+        customImageUrl: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80"
+      },
+      premium_dates: {
+        categoryId: "premium_dates",
+        customTitle: "قسم التمور",
+        customSubtitle: "مجدول ملكي، عجوة، سكري رطب، خلاص، صقعي",
+        customImageUrl: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=600&q=80"
+      },
+      dried_fruits: {
+        categoryId: "dried_fruits",
+        customTitle: "قسم الفواكه المجففة",
+        customSubtitle: "تين تركي، مشمش، زبيب رازقي، قراصيا، صواني هدايا",
+        customImageUrl: "https://images.unsplash.com/photo-1582293041079-7814c2f12063?auto=format&fit=crop&w=600&q=80"
+      }
+    };
+
+    const INITIAL_PRODUCTS_SAMPLE = [
+      { id: "p1", name: "رمان صعدي بلدي فاخر", categoryId: "local_fruits", priceYer: 28, originalPriceYer: 35, unit: "كجم", origin: "اليمن - صعدة", rating: 5.0, badge: "أشهر منتج بلدي", discountPercent: 20, imageUrl: "https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=600&q=80", description: "رمان صعدي بلدي عصيري مسكر ذو حبات حمراء داكنة.", inStock: true },
+      { id: "p2", name: "عنب رازقي بلدي صنعاني", categoryId: "local_fruits", priceYer: 30, originalPriceYer: null, unit: "كجم", origin: "اليمن - بني حشيش", rating: 4.9, badge: "عنب بني حشيش", discountPercent: null, imageUrl: "https://images.unsplash.com/photo-1537640538966-79f369143f8f?auto=format&fit=crop&w=600&q=80", description: "عنب رازقي صنعاني مشهور بحلاوته العالية.", inStock: true },
+      { id: "p7", name: "تفاح رويال غالا واشنطن", categoryId: "imported_fruits", priceYer: 22, originalPriceYer: 28, unit: "كجم", origin: "الولايات المتحدة", rating: 4.8, badge: "مستورد نخب أول", discountPercent: 21, imageUrl: "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&w=600&q=80", description: "تفاح رويال غالا أمريكي مقرمش حلو المذاق.", inStock: true },
+      { id: "p13", name: "طماطم بلدي طازجة عروق", categoryId: "vegetables", priceYer: 10, originalPriceYer: 14, unit: "كجم", origin: "اليمن - تهامة", rating: 4.9, badge: "قطاف فجر اليوم", discountPercent: 29, imageUrl: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80", description: "طماطم بلدي طازجة حمراء وناضجة بعروقها الخضراء.", inStock: true },
+      { id: "p20", name: "تمر مجدول فاخر ملكي", categoryId: "premium_dates", priceYer: 50, originalPriceYer: 65, unit: "كجم", origin: "اليمن - حضرموت", rating: 4.9, badge: "الأكثر طلباً", discountPercent: 23, imageUrl: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=600&q=80", description: "تمر مجدول حضرمي حبات جامبو ملكية ناعمة.", inStock: true },
+      { id: "p25", name: "تين تركي مجفف فاخر", categoryId: "dried_fruits", priceYer: 55, originalPriceYer: 68, unit: "كجم", origin: "تركيا (إزمير)", rating: 4.9, badge: "طبيعي 100%", discountPercent: 19, imageUrl: "https://images.unsplash.com/photo-1582293041079-7814c2f12063?auto=format&fit=crop&w=600&q=80", description: "تين إزمير التركي المجفف شمسياً دون إضافات سكرية.", inStock: true }
+    ];
+
+    const INITIAL_WALLETS_SAMPLE = [
+      { id: "w_kuraimi", name: "الكريمي حاسب (m-floos)", accountNumber: "300776662", accountHolder: "متجر الجمل للخضار والفواكه", note: "تحويل فوري عبر تطبيق الكريمي جوال", isEnabled: true },
+      { id: "w_jawali", name: "محفظة جوالي", accountNumber: "776662630", accountHolder: "متجر الجمل", note: "الدفع الفوري عبر رقم المحفظة", isEnabled: true },
+      { id: "w_jeeb", name: "محفظة جيب (Jeeb)", accountNumber: "776662630", accountHolder: "متجر الجمل", note: "تحويل مباشر لمحفظة جيب", isEnabled: true },
+      { id: "w_floosak", name: "محفظة فلوسك", accountNumber: "776662630", accountHolder: "متجر الجمل", note: "تحويل فوري برقم الهاتف", isEnabled: true },
+      { id: "w_onecash", name: "محفظة ون كاش", accountNumber: "776662630", accountHolder: "متجر الجمل", note: "الدفع عبر خدمة ون كاش", isEnabled: true },
+      { id: "w_cash", name: "الدفع نقداً عند الاستلام", accountNumber: "عند الاستلام", accountHolder: "كاش للمندوب", note: "ادفع عند استلام طلبك طازجاً لباب منزلك", isEnabled: true }
+    ];
+
+    // Check placeholder firebaseConfig warning
+    const isConfigMissing =
+      !firebaseConfig.apiKey ||
+      firebaseConfig.apiKey.includes("PUT_YOUR_") ||
+      firebaseConfig.appId.includes("PUT_YOUR_");
+
+    if (isConfigMissing) {
+      const warnEl = document.getElementById("config-warning");
+      warnEl.textContent =
+        "تنبيه إعداد: يرجى وضع بيانات firebaseConfig الخاصة بمشروعك داخل الكود (apiKey / appId) قبل التشغيل أو الرفع.";
+      warnEl.classList.remove("hidden");
+    }
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db =
+      FIRESTORE_DATABASE_ID && FIRESTORE_DATABASE_ID !== "(default)"
+        ? getFirestore(app, FIRESTORE_DATABASE_ID)
+        : getFirestore(app);
+
+    // ===== SECURITY UTILITIES (SHA-256 + Salt + Constant-Time + Sanitizer) =====
+    const Security = {
+      STORAGE_KEY: "aljamal_web_fw_v2",
+      WEAK_PINS: new Set(["123456", "000000", "111111", "654321", "1234", "0000"]),
+      MAX_ATTEMPTS: 3,
+
+      sanitizeText(str, maxLen = 200) {
+        return String(str ?? "")
+          .replace(/[\u0000-\u001F\u007F]/g, "")
+          .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+          .replace(/[<>]/g, "")
+          .trim()
+          .slice(0, maxLen);
+      },
+
+      sanitizeId(raw) {
+        const cleaned = String(raw ?? "").replace(/[^a-zA-Z0-9_\-]/g, "_").slice(0, 120);
+        return cleaned || `id_${Date.now()}`;
+      },
+
+      isSafeImageUrl(url) {
+        const t = String(url ?? "").trim();
+        return (
+          t.startsWith("https://") ||
+          t.startsWith("data:image/jpeg;base64,") ||
+          t.startsWith("data:image/png;base64,") ||
+          t.startsWith("data:image/webp;base64,")
+        );
+      },
+
+      generateSaltHex() {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+      },
+
+      async sha256Hex(salt, secret) {
+        const enc = new TextEncoder();
+        const data = enc.encode(`${salt}:${secret}`);
+        const hashBuf = await crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(hashBuf), (b) => b.toString(16).padStart(2, "0")).join("");
+      },
+
+      constantTimeEquals(a, b) {
+        if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+        let diff = 0;
+        for (let i = 0; i < a.length; i++) {
+          diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+        }
+        return diff === 0;
+      },
+
+      loadState() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || "null");
+          if (parsed && parsed.pinSalt && parsed.pinHash && parsed.policyVersion === 2) return parsed;
+        } catch {}
+        return null;
+      },
+
+      saveState(obj) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(obj));
+      },
+
+      async ensureInitialized() {
+        let st = this.loadState();
+        if (!st) {
+          const salt = this.generateSaltHex();
+          const hash = await this.sha256Hex(salt, DEFAULT_ADMIN_PASSWORD);
+          st = {
+            policyVersion: 2,
+            pinSalt: salt,
+            pinHash: hash,
+            failedAttempts: 0,
+            lockoutUntil: 0,
+            totalBlocks: 0
+          };
+          this.saveState(st);
+        }
+        return st;
+      },
+
+      async applySyncedPinVerifier(salt, hash) {
+        if (typeof salt === "string" && salt.length >= 16 && typeof hash === "string" && /^[a-fA-F0-9]{64}$/.test(hash)) {
+          const st = await this.ensureInitialized();
+          st.pinSalt = salt;
+          st.pinHash = hash;
+          this.saveState(st);
+        }
+      },
+
+      async verifyAdminPin(candidate) {
+        const st = await this.ensureInitialized();
+        const now = Date.now();
+        if (st.lockoutUntil > now) {
+          return { status: "LOCKED", remainingSeconds: Math.ceil((st.lockoutUntil - now) / 1000) };
+        }
+        const clean = String(candidate ?? "").trim();
+        const candHash = await this.sha256Hex(st.pinSalt, clean);
+        if (clean && this.constantTimeEquals(st.pinHash, candHash)) {
+          st.failedAttempts = 0;
+          st.lockoutUntil = 0;
+          this.saveState(st);
+          return { status: "OK" };
+        }
+        st.failedAttempts = (st.failedAttempts || 0) + 1;
+        if (st.failedAttempts >= this.MAX_ATTEMPTS) {
+          const durationMs =
+            st.failedAttempts >= 7 ? 15 * 60_000 : st.failedAttempts >= 5 ? 5 * 60_000 : 30_000;
+          st.lockoutUntil = now + durationMs;
+          st.totalBlocks = (st.totalBlocks || 0) + 1;
+          this.saveState(st);
+          return { status: "LOCKED", remainingSeconds: Math.ceil(durationMs / 1000) };
+        }
+        this.saveState(st);
+        return {
+          status: "INVALID",
+          failedAttempts: st.failedAttempts,
+          remainingBeforeLock: Math.max(0, this.MAX_ATTEMPTS - st.failedAttempts)
+        };
+      },
+
+      async changeAdminPin(currentPin, newPin) {
+        const check = await this.verifyAdminPin(currentPin);
+        if (check.status !== "OK") {
+          throw new Error("كلمة السر الحالية غير صحيحة أو تم حظر الإدخال مؤقتاً");
+        }
+        const cleanNew = String(newPin ?? "").trim();
+        if (cleanNew.length < 6) {
+          throw new Error("يجب أن تتكون كلمة السر الجديدة من 6 رموز/أرقام على الأقل للحماية");
+        }
+        if (this.WEAK_PINS.has(cleanNew)) {
+          throw new Error("كلمة السر ضعيفة وسهلة التخمين؛ اختر كلمة سر أقوى");
+        }
+        const salt = this.generateSaltHex();
+        const hash = await this.sha256Hex(salt, cleanNew);
+        const st = await this.ensureInitialized();
+        st.pinSalt = salt;
+        st.pinHash = hash;
+        this.saveState(st);
+        return { salt, hash };
+      }
+    };
+
+    // Compress picked image file into <= 90KB JPEG Data URL (compatible with Android & Firestore 750KB rule)
+    function compressImageFileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("تعذر قراءة ملف الصورة"));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error("ملف الصورة غير صالح"));
+          img.onload = () => {
+            const maxDim = 480;
+            const scale = Math.min(maxDim / Math.max(1, img.width), maxDim / Math.max(1, img.height), 1);
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(img.width * scale));
+            canvas.height = Math.max(1, Math.round(img.height * scale));
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            let quality = 0.78;
+            let dataUrl = canvas.toDataURL("image/jpeg", quality);
+            while (dataUrl.length > 120000 && quality > 0.35) {
+              quality -= 0.1;
+              dataUrl = canvas.toDataURL("image/jpeg", quality);
+            }
+            resolve(dataUrl);
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ===== APP STATE =====
+    const state = {
+      user: null,
+      isCloudAdmin: false,
+      pinUnlocked: false,
+      activeTab: "products",
+
+      products: [],
+      categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+      wallets: [],
+      offerSlotProductIds: [],
+      syncVersion: 0,
+
+      cloudProducts: [],
+      cloudCategories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+      cloudWallets: [],
+      cloudOfferSlots: [],
+
+      createdAtCache: {
+        products: new Map(),
+        categories: new Map(),
+        wallets: new Map(),
+        config: null,
+        pinConfig: null
+      },
+
+      deletedProductIds: new Set(),
+      deletedWalletIds: new Set(),
+      pendingPinPair: null,
+      pendingChanges: [],
+      hasUnsavedChanges: false,
+      isSyncing: false,
+      unsubscribers: [],
+      pendingModalProductImg: null,
+      quickTargetId: null,
+      lockoutTimer: null
+    };
+
+    // ===== DOM REFERENCES =====
+    const authScreen = document.getElementById("auth-screen");
+    const pinLockScreen = document.getElementById("pin-lock-screen");
+    const dashboardScreen = document.getElementById("dashboard-screen");
+
+    function showScreen(name) {
+      authScreen.classList.toggle("hidden", name !== "auth");
+      pinLockScreen.classList.toggle("hidden", name !== "pin");
+      dashboardScreen.classList.toggle("hidden", name !== "dashboard");
+    }
+
+    function recordPendingChange(summary) {
+      state.hasUnsavedChanges = true;
+      state.pendingChanges = [summary, ...state.pendingChanges.filter((x) => x !== summary)].slice(0, 20);
+      renderSyncCard();
+    }
+
+    function showSyncFeedback(type, msg) {
+      const box = document.getElementById("sync-feedback-box");
+      box.className = `alert-box ${type === "ok" ? "alert-success" : "alert-error"}`;
+      box.textContent = msg;
+      box.classList.remove("hidden");
+    }
+
+    // ===== FIRESTORE SECURITY LOG HELPER =====
+    async function logSecurityEvent(eventType, details) {
+      if (!state.user) return;
+      try {
+        const logId = `web_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+        await setDoc(doc(db, "security_logs", logId), {
+          userId: state.user.uid,
+          eventType,
+          details: Security.sanitizeText(details, 250) || eventType,
+          createdAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.warn("Security log skipped:", err?.code || err?.message);
+      }
+    }
+
+    async function ensureUserProfile(user) {
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+        const safeName = Security.sanitizeText(user.displayName || "مدير متجر الجمل", 80);
+        const safeEmail = Security.sanitizeText(user.email || "admin@aljamal.local", 120);
+        if (!snap.exists()) {
+          await setDoc(userRef, {
+            userId: user.uid,
+            displayName: safeName,
+            email: safeEmail,
+            role: "customer",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        } else {
+          await updateDoc(userRef, {
+            displayName: safeName,
+            email: safeEmail,
+            updatedAt: serverTimestamp()
+          });
+        }
+      } catch (e) {
+        console.warn("User profile sync note:", e?.code || e?.message);
+      }
+    }
+
+    async function checkCloudAdminStatus(user) {
+      if (user.emailVerified && (user.email || "").toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase()) return true;
+      try {
+        const snap = await getDoc(doc(db, "admins", user.uid));
+        return snap.exists();
+      } catch {
+        return false;
+      }
+    }
+
+    // ===== REAL-TIME FIRESTORE LISTENERS =====
+    function clearListeners() {
+      state.unsubscribers.forEach((u) => { try { u(); } catch {} });
+      state.unsubscribers = [];
+    }
+
+    function startCloudListeners(user) {
+      clearListeners();
+
+      const qProducts = query(collection(db, "store_products"), where("storeId", "==", STORE_ID));
+      state.unsubscribers.push(
+        onSnapshot(qProducts, (snap) => {
+          const list = snap.docs.map((d) => {
+            const data = d.data({ serverTimestamps: "estimate" });
+            if (data.createdAt) state.createdAtCache.products.set(d.id, data.createdAt);
+            return {
+              id: d.id,
+              name: data.name || "",
+              categoryId: data.categoryId || "local_fruits",
+              priceYer: Number(data.priceYer || 0),
+              originalPriceYer: data.originalPriceYer != null ? Number(data.originalPriceYer) : null,
+              unit: data.unit || "كجم",
+              origin: data.origin || "",
+              rating: Number(data.rating ?? 5),
+              badge: data.badge || null,
+              imageUrl: data.imageUrl || DEFAULT_SAFE_PRODUCT_IMAGE,
+              discountPercent: data.discountPercent != null ? Number(data.discountPercent) : null,
+              description: data.description || "",
+              inStock: data.inStock !== false
+            };
+          });
+          state.cloudProducts = list;
+          if (!state.hasUnsavedChanges) {
+            state.products = list;
+            renderAllTabs();
+          }
+        }, (err) => console.warn("Products snapshot error:", err))
+      );
+
+      const qCats = query(collection(db, "store_categories"), where("storeId", "==", STORE_ID));
+      state.unsubscribers.push(
+        onSnapshot(qCats, (snap) => {
+          const merged = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+          snap.docs.forEach((d) => {
+            const data = d.data({ serverTimestamps: "estimate" });
+            if (data.createdAt) state.createdAtCache.categories.set(d.id, data.createdAt);
+            merged[d.id] = {
+              categoryId: d.id,
+              customTitle: data.customTitle || merged[d.id]?.customTitle || d.id,
+              customSubtitle: data.customSubtitle || "",
+              customImageUrl: data.customImageUrl || merged[d.id]?.customImageUrl || DEFAULT_SAFE_PRODUCT_IMAGE
+            };
+          });
+          state.cloudCategories = merged;
+          if (!state.hasUnsavedChanges) {
+            state.categories = JSON.parse(JSON.stringify(merged));
+            renderCategories();
+          }
+        }, (err) => console.warn("Categories snapshot error:", err))
+      );
+
+      const qWallets = query(collection(db, "store_wallets"), where("storeId", "==", STORE_ID));
+      state.unsubscribers.push(
+        onSnapshot(qWallets, (snap) => {
+          const list = snap.docs.map((d) => {
+            const data = d.data({ serverTimestamps: "estimate" });
+            if (data.createdAt) state.createdAtCache.wallets.set(d.id, data.createdAt);
+            return {
+              id: d.id,
+              name: data.name || "",
+              accountNumber: data.accountNumber || "",
+              accountHolder: data.accountHolder || "",
+              note: data.note || "",
+              isEnabled: data.isEnabled !== false
+            };
+          });
+          state.cloudWallets = list;
+          if (!state.hasUnsavedChanges) {
+            state.wallets = list;
+            renderWallets();
+          }
+        }, (err) => console.warn("Wallets snapshot error:", err))
+      );
+
+      state.unsubscribers.push(
+        onSnapshot(doc(db, "store_config", "main"), (snap) => {
+          if (snap.exists()) {
+            const data = snap.data({ serverTimestamps: "estimate" });
+            if (data.createdAt) state.createdAtCache.config = data.createdAt;
+            state.syncVersion = Number(data.syncVersion || 0);
+            state.cloudOfferSlots = Array.isArray(data.offerSlotProductIds) ? data.offerSlotProductIds.slice(0, 4) : [];
+            if (!state.hasUnsavedChanges) {
+              state.offerSlotProductIds = [...state.cloudOfferSlots];
+              renderOffers();
+            }
+            renderSyncCard();
+          }
+        }, (err) => console.warn("Config snapshot error:", err))
+      );
+
+      if (state.isCloudAdmin) {
+        state.unsubscribers.push(
+          onSnapshot(
+            doc(db, "admin_security", "pin_config"),
+            async (snap) => {
+              if (snap.exists()) {
+                const data = snap.data({ serverTimestamps: "estimate" });
+                if (data.createdAt) state.createdAtCache.pinConfig = data.createdAt;
+                await Security.applySyncedPinVerifier(data.pinSalt, data.pinHash);
+              }
+            },
+            () => {}
+          )
+        );
+      }
+    }
+
+    // ===== PUBLISH FULL STORE CATALOG TO FIRESTORE =====
+    async function publishWorkToCloud() {
+      if (!state.user || state.isSyncing) return;
+      state.isSyncing = true;
+      renderSyncCard();
+
+      try {
+        const uid = state.user.uid;
+        const nextVersion = state.syncVersion + 1;
+        const signerName = Security.sanitizeText(state.user.displayName || state.user.email || "المدير", 80);
+        const ops = [];
+
+        state.products.forEach((p) => {
+          const cleanId = Security.sanitizeId(p.id);
+          const payload = {
+            storeId: STORE_ID,
+            ownerId: uid,
+            name: Security.sanitizeText(p.name, 120) || "صنف متجر الجمل",
+            categoryId: p.categoryId || "local_fruits",
+            priceYer: Math.max(1, Number(p.priceYer) || 1),
+            unit: Security.sanitizeText(p.unit, 50) || "كجم",
+            origin: Security.sanitizeText(p.origin, 80) || "اليمن",
+            rating: Math.min(5, Math.max(0, Number(p.rating ?? 5))),
+            imageUrl: Security.isSafeImageUrl(p.imageUrl) ? p.imageUrl : DEFAULT_SAFE_PRODUCT_IMAGE,
+            description: Security.sanitizeText(p.description, 1000),
+            inStock: p.inStock !== false,
+            createdAt: state.createdAtCache.products.get(cleanId) || serverTimestamp(),
+            updatedAt: serverTimestamp()
+          };
+          if (p.originalPriceYer && Number(p.originalPriceYer) > 0) {
+            payload.originalPriceYer = Number(p.originalPriceYer);
+            if (payload.originalPriceYer > payload.priceYer) {
+              payload.discountPercent = Math.min(
+                99,
+                Math.max(0, Math.round(((payload.originalPriceYer - payload.priceYer) / payload.originalPriceYer) * 100))
+              );
+            }
+          }
+          if (p.badge) payload.badge = Security.sanitizeText(p.badge, 60);
+          ops.push({ type: "set", ref: doc(db, "store_products", cleanId), data: payload });
+        });
+
+        state.deletedProductIds.forEach((id) => {
+          ops.push({ type: "delete", ref: doc(db, "store_products", Security.sanitizeId(id)) });
+        });
+
+        Object.values(state.categories).forEach((cat) => {
+          const cleanId = Security.sanitizeId(cat.categoryId);
+          const payload = {
+            storeId: STORE_ID,
+            ownerId: uid,
+            customTitle: Security.sanitizeText(cat.customTitle, 80) || cleanId,
+            customSubtitle: Security.sanitizeText(cat.customSubtitle, 160),
+            createdAt: state.createdAtCache.categories.get(cleanId) || serverTimestamp(),
+            updatedAt: serverTimestamp()
+          };
+          if (Security.isSafeImageUrl(cat.customImageUrl)) {
+            payload.customImageUrl = cat.customImageUrl;
+          }
+          ops.push({ type: "set", ref: doc(db, "store_categories", cleanId), data: payload });
+        });
+
+        state.wallets.forEach((w) => {
+          const cleanId = Security.sanitizeId(w.id);
+          const payload = {
+            storeId: STORE_ID,
+            ownerId: uid,
+            name: Security.sanitizeText(w.name, 80) || "محفظة",
+            accountNumber: Security.sanitizeText(w.accountNumber, 60) || "غير محدد",
+            accountHolder: Security.sanitizeText(w.accountHolder, 80),
+            note: Security.sanitizeText(w.note, 200),
+            isEnabled: w.isEnabled !== false,
+            createdAt: state.createdAtCache.wallets.get(cleanId) || serverTimestamp(),
+            updatedAt: serverTimestamp()
+          };
+          ops.push({ type: "set", ref: doc(db, "store_wallets", cleanId), data: payload });
+        });
+
+        state.deletedWalletIds.forEach((id) => {
+          ops.push({ type: "delete", ref: doc(db, "store_wallets", Security.sanitizeId(id)) });
+        });
+
+        if (!state.createdAtCache.config) {
+          try {
+            const cSnap = await getDoc(doc(db, "store_config", "main"));
+            if (cSnap.exists()) state.createdAtCache.config = cSnap.data().createdAt || null;
+          } catch {}
+        }
+
+        ops.push({
+          type: "set",
+          ref: doc(db, "store_config", "main"),
+          data: {
+            storeId: STORE_ID,
+            ownerId: uid,
+            offerSlotProductIds: state.offerSlotProductIds.map((id) => Security.sanitizeId(id)).slice(0, 4),
+            syncVersion: Math.floor(nextVersion),
+            lastSyncedByName: signerName,
+            createdAt: state.createdAtCache.config || serverTimestamp(),
+            updatedAt: serverTimestamp()
+          }
+        });
+
+        if (state.pendingPinPair) {
+          if (!state.createdAtCache.pinConfig) {
+            try {
+              const pSnap = await getDoc(doc(db, "admin_security", "pin_config"));
+              if (pSnap.exists()) state.createdAtCache.pinConfig = pSnap.data().createdAt || null;
+            } catch {}
+          }
+          ops.push({
+            type: "set",
+            ref: doc(db, "admin_security", "pin_config"),
+            data: {
+              ownerId: uid,
+              pinHash: state.pendingPinPair.hash,
+              pinSalt: state.pendingPinPair.salt,
+              createdAt: state.createdAtCache.pinConfig || serverTimestamp(),
+              updatedAt: serverTimestamp()
+            }
+          });
+        }
+
+        ops.push({
+          type: "set",
+          ref: doc(db, "security_logs", `sync_${Date.now().toString(36)}`),
+          data: {
+            userId: uid,
+            eventType: "CLOUD_SYNC",
+            details: `مزامنة من الويب: ${state.products.length} صنف و${state.wallets.length} محفظة (الإصدار ${nextVersion})`,
+            createdAt: serverTimestamp()
+          }
+        });
+
+        for (let i = 0; i < ops.length; i += 400) {
+          const batch = writeBatch(db);
+          ops.slice(i, i + 400).forEach((op) => {
+            if (op.type === "set") batch.set(op.ref, op.data);
+            else batch.delete(op.ref);
+          });
+          await batch.commit();
+        }
+
+        state.syncVersion = nextVersion;
+        state.hasUnsavedChanges = false;
+        state.pendingChanges = [];
+        state.deletedProductIds.clear();
+        state.deletedWalletIds.clear();
+        state.pendingPinPair = null;
+
+        showSyncFeedback("ok", `تم حفظ العمل ومزامنته بنجاح مع كل الأجهزة المتصلة بالإنترنت ✓ (الإصدار #${nextVersion})`);
+        loadSecurityLogs();
+      } catch (err) {
+        const code = err?.code || "";
+        if (code === "permission-denied") {
+          showSyncFeedback(
+            "err",
+            `مرفوض من جدار الحماية (Security Rules): يجب تسجيل الدخول بحساب المدير المؤكد (${BOOTSTRAPPED_ADMIN_EMAIL}) لنشر التعديلات.`
+          );
+        } else {
+          showSyncFeedback("err", `تعذر الحفظ والمزامنة: ${err?.message || "تحقق من اتصال الإنترنت"}`);
+        }
+      } finally {
+        state.isSyncing = false;
+        renderSyncCard();
+      }
+    }
+
+    // ===== RENDERING (XSS-SAFE DOM CREATION) =====
+    function renderSyncCard() {
+      const card = document.getElementById("sync-menu-card");
+      const sub = document.getElementById("sync-status-subtitle");
+      const pill = document.getElementById("sync-version-pill");
+      const pendingBox = document.getElementById("pending-changes-box");
+      const pendingUl = document.getElementById("pending-changes-ul");
+      const pendingCount = document.getElementById("pending-count");
+      const saveBtn = document.getElementById("save-sync-btn");
+      const discardBtn = document.getElementById("discard-changes-btn");
+
+      card.classList.toggle("has-unsaved", state.hasUnsavedChanges);
+      pill.textContent = `الإصدار #${state.syncVersion}`;
+
+      if (state.isSyncing) {
+        sub.textContent = "جاري رفع وحفظ التعديلات ومزامنتها مع كل الأجهزة...";
+        saveBtn.disabled = true;
+        saveBtn.textContent = "⏳ جاري الحفظ والمزامنة...";
+      } else if (state.hasUnsavedChanges) {
+        sub.textContent = `يوجد ${state.pendingChanges.length} عمل/تعديلات جاهزة للحفظ والمزامنة`;
+        saveBtn.disabled = false;
+        saveBtn.textContent = "☁️ حفظ العمل ومزامنة مع كل الأجهزة";
+      } else {
+        sub.textContent =
+          state.syncVersion > 0
+            ? `مزامن مع كافة الأجهزة المتصلة بالإنترنت (إصدار #${state.syncVersion})`
+            : "اضغط حفظ ومزامنة لنشر الكتالوج على كل الأجهزة المتصلة بالإنترنت";
+        saveBtn.disabled = false;
+        saveBtn.textContent = "☁️ مزامنة فورية مع كل الأجهزة";
+      }
+
+      pendingBox.classList.toggle("hidden", state.pendingChanges.length === 0);
+      discardBtn.classList.toggle("hidden", !state.hasUnsavedChanges || state.isSyncing);
+      pendingCount.textContent = String(state.pendingChanges.length);
+      pendingUl.replaceChildren();
+      state.pendingChanges.forEach((txt) => {
+        const li = document.createElement("li");
+        li.textContent = txt;
+        pendingUl.appendChild(li);
+      });
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById("products-grid");
+      const search = document.getElementById("product-search-input").value.trim().toLowerCase();
+      const catFilter = document.getElementById("product-cat-filter").value;
+
+      const filtered = state.products.filter((p) => {
+        const okCat = catFilter === "all" || p.categoryId === catFilter;
+        const okSearch =
+          !search ||
+          p.name.toLowerCase().includes(search) ||
+          (p.origin || "").toLowerCase().includes(search);
+        return okCat && okSearch;
+      });
+
+      document.getElementById("products-count").textContent = String(state.products.length);
+      grid.replaceChildren();
+
+      if (filtered.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.gridColumn = "1 / -1";
+        empty.style.textAlign = "center";
+        empty.style.padding = "24px";
+        empty.style.color = "var(--stone-500)";
+        empty.style.fontWeight = "700";
+        empty.textContent = "لا توجد منتجات بعد — أضف منتجاً جديداً أو اضغط «تحميل الكتالوج الافتراضي» أعلاه.";
+        grid.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach((prod) => {
+        const card = document.createElement("div");
+        card.className = "item-card";
+
+        const thumbWrap = document.createElement("div");
+        thumbWrap.className = "item-thumb-wrap";
+        thumbWrap.title = "اضغط لتغيير الصورة من جهازك";
+        thumbWrap.onclick = () => triggerQuickProductPhoto(prod.id);
+
+        const img = document.createElement("img");
+        img.src = Security.isSafeImageUrl(prod.imageUrl) ? prod.imageUrl : DEFAULT_SAFE_PRODUCT_IMAGE;
+        img.alt = prod.name;
+        const overlay = document.createElement("div");
+        overlay.className = "thumb-overlay";
+        overlay.textContent = "🖼️";
+        thumbWrap.append(img, overlay);
+
+        const info = document.createElement("div");
+        info.className = "item-info";
+        const nameEl = document.createElement("div");
+        nameEl.className = "item-name";
+        nameEl.textContent = prod.name;
+        const subEl = document.createElement("div");
+        subEl.className = "item-sub";
+        const catTitle = state.categories[prod.categoryId]?.customTitle || prod.categoryId;
+        subEl.textContent = `${catTitle} • /${prod.unit}`;
+        const priceRow = document.createElement("div");
+        priceRow.className = "item-price-row";
+        const pNow = document.createElement("span");
+        pNow.className = "price-now";
+        pNow.textContent = `${Math.round(prod.priceYer)} ر.ي`;
+        priceRow.appendChild(pNow);
+        if (prod.originalPriceYer) {
+          const pOld = document.createElement("span");
+          pOld.className = "price-old";
+          pOld.textContent = `${Math.round(prod.originalPriceYer)} ر.ي`;
+          priceRow.appendChild(pOld);
+        }
+        info.append(nameEl, subEl, priceRow);
+
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+
+        const photoBtn = document.createElement("button");
+        photoBtn.type = "button";
+        photoBtn.className = "icon-circle-btn bg-amber-soft";
+        photoBtn.title = "تغيير الصورة";
+        photoBtn.textContent = "🖼️";
+        photoBtn.onclick = () => triggerQuickProductPhoto(prod.id);
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "icon-circle-btn bg-emerald-soft";
+        editBtn.title = "تعديل السعر";
+        editBtn.textContent = "✏️";
+        editBtn.onclick = () => openEditPriceModal(prod);
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "icon-circle-btn bg-red-soft";
+        delBtn.title = "حذف المنتج";
+        delBtn.textContent = "🗑️";
+        delBtn.onclick = () => {
+          state.products = state.products.filter((x) => x.id !== prod.id);
+          state.offerSlotProductIds = state.offerSlotProductIds.filter((id) => id !== prod.id);
+          state.deletedProductIds.add(prod.id);
+          recordPendingChange(`حذف منتج: ${prod.name}`);
+          renderProducts();
+          renderOffers();
+        };
+
+        actions.append(photoBtn, editBtn, delBtn);
+        card.append(thumbWrap, info, actions);
+        grid.appendChild(card);
+      });
+    }
+
+    function renderOffers() {
+      const container = document.getElementById("offers-list");
+      document.getElementById("offers-selected-count").textContent = String(state.offerSlotProductIds.length);
+      container.replaceChildren();
+
+      state.products.forEach((prod) => {
+        const isSelected = state.offerSlotProductIds.includes(prod.id);
+        const row = document.createElement("div");
+        row.className = `offer-row ${isSelected ? "selected" : ""}`;
+
+        const label = document.createElement("label");
+        label.className = "offer-check-label";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = isSelected;
+        cb.onchange = () => {
+          if (isSelected) {
+            state.offerSlotProductIds = state.offerSlotProductIds.filter((id) => id !== prod.id);
+          } else {
+            if (state.offerSlotProductIds.length >= 4) {
+              cb.checked = false;
+              alert("الحد الأقصى للعروض الخاصة هو 4 أصناف فقط.");
+              return;
+            }
+            state.offerSlotProductIds = [...state.offerSlotProductIds, prod.id];
+          }
+          recordPendingChange(`تعديل العروض الخاصة: ${prod.name}`);
+          renderOffers();
+        };
+        const span = document.createElement("span");
+        span.textContent = prod.name;
+        label.append(cb, span);
+
+        const right = document.createElement("div");
+        right.style.display = "flex";
+        right.style.alignItems = "center";
+        right.style.gap = "6px";
+
+        const price = document.createElement("span");
+        price.className = "price-now";
+        price.textContent = `${Math.round(prod.priceYer)} ر.ي`;
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "icon-circle-btn bg-emerald-soft";
+        editBtn.textContent = "✏️";
+        editBtn.onclick = () => openEditPriceModal(prod);
+
+        const imgBtn = document.createElement("button");
+        imgBtn.type = "button";
+        imgBtn.className = "btn btn-outline btn-sm";
+        imgBtn.textContent = "صورة العرض";
+        imgBtn.onclick = () => triggerQuickProductPhoto(prod.id);
+
+        right.append(price, editBtn, imgBtn);
+        row.append(label, right);
+        container.appendChild(row);
+      });
+    }
+
+    function renderCategories() {
+      const grid = document.getElementById("categories-grid");
+      grid.replaceChildren();
+      Object.values(state.categories).forEach((cat) => {
+        const card = document.createElement("div");
+        card.className = "item-card";
+
+        const thumbWrap = document.createElement("div");
+        thumbWrap.className = "item-thumb-wrap";
+        thumbWrap.onclick = () => triggerQuickCategoryPhoto(cat.categoryId);
+        const img = document.createElement("img");
+        img.src = Security.isSafeImageUrl(cat.customImageUrl) ? cat.customImageUrl : DEFAULT_SAFE_PRODUCT_IMAGE;
+        img.alt = cat.customTitle;
+        const overlay = document.createElement("div");
+        overlay.className = "thumb-overlay";
+        overlay.textContent = "🖼️";
+        thumbWrap.append(img, overlay);
+
+        const info = document.createElement("div");
+        info.className = "item-info";
+        const titleEl = document.createElement("div");
+        titleEl.className = "item-name";
+        titleEl.textContent = cat.customTitle;
+        const subEl = document.createElement("div");
+        subEl.className = "item-sub";
+        subEl.textContent = cat.customSubtitle;
+        info.append(titleEl, subEl);
+
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+        const photoBtn = document.createElement("button");
+        photoBtn.type = "button";
+        photoBtn.className = "btn btn-amber btn-sm";
+        photoBtn.textContent = "🖼️ تغيير الصورة";
+        photoBtn.onclick = () => triggerQuickCategoryPhoto(cat.categoryId);
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "icon-circle-btn bg-emerald-soft";
+        editBtn.textContent = "✏️";
+        editBtn.onclick = () => {
+          document.getElementById("cat-edit-id").value = cat.categoryId;
+          document.getElementById("cat-edit-title").value = cat.customTitle;
+          document.getElementById("cat-edit-subtitle").value = cat.customSubtitle;
+          document.getElementById("modal-category").classList.remove("hidden");
+        };
+
+        actions.append(photoBtn, editBtn);
+        card.append(thumbWrap, info, actions);
+        grid.appendChild(card);
+      });
+    }
+
+    function renderWallets() {
+      const grid = document.getElementById("wallets-grid");
+      document.getElementById("wallets-count").textContent = String(state.wallets.length);
+      grid.replaceChildren();
+
+      state.wallets.forEach((w) => {
+        const card = document.createElement("div");
+        card.className = "item-card";
+
+        const info = document.createElement("div");
+        info.className = "item-info";
+        const nameEl = document.createElement("div");
+        nameEl.className = "item-name";
+        nameEl.textContent = w.name;
+        const accEl = document.createElement("div");
+        accEl.className = "price-now";
+        accEl.style.fontSize = "12px";
+        accEl.textContent = `رقم الحساب: ${w.accountNumber}`;
+        const holderEl = document.createElement("div");
+        holderEl.className = "item-sub";
+        holderEl.textContent = w.accountHolder || w.note || "";
+        info.append(nameEl, accEl, holderEl);
+
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "icon-circle-btn bg-emerald-soft";
+        editBtn.textContent = "✏️";
+        editBtn.onclick = () => openWalletModal(w);
+        actions.appendChild(editBtn);
+
+        if (w.id !== "w_cash") {
+          const delBtn = document.createElement("button");
+          delBtn.type = "button";
+          delBtn.className = "icon-circle-btn bg-red-soft";
+          delBtn.textContent = "🗑️";
+          delBtn.onclick = () => {
+            state.wallets = state.wallets.filter((x) => x.id !== w.id);
+            state.deletedWalletIds.add(w.id);
+            recordPendingChange(`حذف محفظة: ${w.name}`);
+            renderWallets();
+          };
+          actions.appendChild(delBtn);
+        }
+
+        card.append(info, actions);
+        grid.appendChild(card);
+      });
+    }
+
+    async function loadSecurityLogs() {
+      if (!state.user) return;
+      const listEl = document.getElementById("security-logs-list");
+      const st = await Security.ensureInitialized();
+      document.getElementById("firewall-blocks-count").textContent =
+        `محاولات الاختراق المحظورة محلياً: ${st.totalBlocks || 0}`;
+
+      try {
+        const qLogs = query(collection(db, "security_logs"), where("userId", "==", state.user.uid));
+        const snap = await getDocs(qLogs);
+        const rows = snap.docs
+          .map((d) => d.data())
+          .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))
+          .slice(0, 12);
+
+        listEl.replaceChildren();
+        if (rows.length === 0) {
+          listEl.textContent = "لا توجد أحداث أمنية مسجلة بعد.";
+          return;
+        }
+        rows.forEach((r) => {
+          const item = document.createElement("div");
+          const isWarn = r.eventType === "FAILED_PIN" || r.eventType === "FIREWALL_LOCKOUT";
+          item.className = `log-item ${isWarn ? "warn" : ""}`;
+          const txt = document.createElement("span");
+          txt.textContent = `[${r.eventType}] ${r.details}`;
+          const time = document.createElement("span");
+          time.style.color = "var(--stone-500)";
+          time.textContent = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString("ar-YE") : "الآن";
+          item.append(txt, time);
+          listEl.appendChild(item);
+        });
+      } catch (err) {
+        listEl.textContent = "تعذر تحميل سجل الأمان السحابي.";
+      }
+    }
+
+    function renderAllTabs() {
+      renderSyncCard();
+      renderProducts();
+      renderOffers();
+      renderCategories();
+      renderWallets();
+    }
+
+    // ===== MODALS & QUICK PICKERS =====
+    function openEditPriceModal(prod) {
+      document.getElementById("edit-price-id").value = prod.id;
+      document.getElementById("edit-price-title").textContent = `تعديل سعر: ${prod.name}`;
+      document.getElementById("edit-price-value").value = String(prod.priceYer);
+      document.getElementById("edit-orig-price-value").value = prod.originalPriceYer ? String(prod.originalPriceYer) : "";
+      document.getElementById("modal-edit-price").classList.remove("hidden");
+    }
+
+    function openWalletModal(wallet = null) {
+      document.getElementById("wallet-edit-id").value = wallet ? wallet.id : "";
+      document.getElementById("wallet-modal-title").textContent = wallet ? `تعديل محفظة: ${wallet.name}` : "إضافة محفظة إلكترونية جديدة";
+      document.getElementById("wallet-name").value = wallet ? wallet.name : "";
+      document.getElementById("wallet-number").value = wallet ? wallet.accountNumber : "";
+      document.getElementById("wallet-holder").value = wallet ? wallet.accountHolder : "متجر الجمل";
+      document.getElementById("wallet-note").value = wallet ? wallet.note : "";
+      document.getElementById("modal-wallet").classList.remove("hidden");
+    }
+
+    function triggerQuickProductPhoto(prodId) {
+      state.quickTargetId = prodId;
+      document.getElementById("quick-product-photo-input").click();
+    }
+
+    function triggerQuickCategoryPhoto(catId) {
+      state.quickTargetId = catId;
+      document.getElementById("quick-category-photo-input").click();
+    }
+
+    // ===== EVENT LISTENERS =====
+    document.getElementById("toggle-login-pwd").onclick = () => {
+      const inp = document.getElementById("login-password");
+      const btn = document.getElementById("toggle-login-pwd");
+      inp.type = inp.type === "password" ? "text" : "password";
+      btn.textContent = inp.type === "password" ? "إظهار" : "إخفاء";
+    };
+
+    document.getElementById("toggle-pin-pwd").onclick = () => {
+      const inp = document.getElementById("admin-pin-input");
+      const btn = document.getElementById("toggle-pin-pwd");
+      inp.type = inp.type === "password" ? "text" : "password";
+      btn.textContent = inp.type === "password" ? "إظهار" : "إخفاء";
+    };
+
+    document.getElementById("login-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById("auth-error");
+      const submitBtn = document.getElementById("login-submit-btn");
+      errBox.classList.add("hidden");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "جاري التحقق من الحساب...";
+
+      try {
+        const email = document.getElementById("login-email").value.trim();
+        const password = document.getElementById("login-password").value;
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        const code = err?.code || "";
+        let msg = "تعذر تسجيل الدخول. تأكد من صحة البريد الإلكتروني وكلمة المرور.";
+        if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+          msg = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+        } else if (code === "auth/too-many-requests") {
+          msg = "تم إيقاف المحاولات مؤقتاً لحماية الحساب. انتظر قليلاً ثم أعد المحاولة.";
+        } else if (code === "auth/network-request-failed") {
+          msg = "تعذر الاتصال بالإنترنت أو إعدادات Firebase غير مكتملة.";
+        }
+        errBox.textContent = msg;
+        errBox.classList.remove("hidden");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "تسجيل الدخول إلى لوحة التحكم";
+      }
+    };
+
+    async function refreshPinLockUi() {
+      const st = await Security.ensureInitialized();
+      const now = Date.now();
+      const badge = document.getElementById("pin-firewall-badge");
+      const submitBtn = document.getElementById("pin-submit-btn");
+      const inp = document.getElementById("admin-pin-input");
+      if (st.lockoutUntil > now) {
+        const sec = Math.ceil((st.lockoutUntil - now) / 1000);
+        badge.className = "alert-box alert-error";
+        badge.textContent = `تم تفعيل جدار الحماية ضد الاختراق • الحظر مؤقت: ${sec} ثانية`;
+        submitBtn.disabled = true;
+        inp.disabled = true;
+      } else {
+        badge.className = "alert-box alert-success";
+        badge.textContent = "جدار الحماية نشط • التشفير: SHA-256 + حظر التخمين";
+        submitBtn.disabled = false;
+        inp.disabled = false;
+      }
+    }
+
+    document.getElementById("pin-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const errBox = document.getElementById("pin-error-box");
+      errBox.classList.add("hidden");
+      const res = await Security.verifyAdminPin(document.getElementById("admin-pin-input").value);
+      if (res.status === "OK") {
+        document.getElementById("admin-pin-input").value = "";
+        state.pinUnlocked = true;
+        logSecurityEvent("ADMIN_UNLOCK", "دخول مصرح به للوحة تحكم المدير عبر الويب");
+        showScreen("dashboard");
+        loadSecurityLogs();
+      } else if (res.status === "INVALID") {
+        logSecurityEvent("FAILED_PIN", `محاولة كلمة سر خاطئة عبر الويب (${res.failedAttempts})`);
+        errBox.textContent = `كلمة السر غير صحيحة! متبقي ${res.remainingBeforeLock} محاولات قبل الحظر الأمني.`;
+        errBox.classList.remove("hidden");
+      } else if (res.status === "LOCKED") {
+        logSecurityEvent("FIREWALL_LOCKOUT", `حظر مؤقت لمدة ${res.remainingSeconds} ثانية`);
+        errBox.textContent = `تم حظر الدخول مؤقتاً لمدة ${res.remainingSeconds} ثانية لحماية المتجر.`;
+        errBox.classList.remove("hidden");
+        refreshPinLockUi();
+        if (!state.lockoutTimer) {
+          state.lockoutTimer = setInterval(async () => {
+            await refreshPinLockUi();
+            const st = await Security.ensureInitialized();
+            if (st.lockoutUntil <= Date.now()) {
+              clearInterval(state.lockoutTimer);
+              state.lockoutTimer = null;
+            }
+          }, 1000);
+        }
+      }
+    };
+
+    document.getElementById("pin-signout-btn").onclick = () => signOut(auth);
+    document.getElementById("logout-btn").onclick = () => signOut(auth);
+    document.getElementById("lock-pin-btn").onclick = () => {
+      state.pinUnlocked = false;
+      showScreen("pin");
+      refreshPinLockUi();
+    };
+
+    document.getElementById("send-verify-email-btn").onclick = async () => {
+      if (!state.user) return;
+      try {
+        await sendEmailVerification(state.user);
+        showSyncFeedback("ok", "تم إرسال رابط التفعيل إلى بريدك الإلكتروني. افتح الرسالة واضغط الرابط ثم اضغط «تحديث الحالة».");
+      } catch (e) {
+        showSyncFeedback("err", e?.message || "تعذر إرسال رسالة التحقق");
+      }
+    };
+
+    document.getElementById("reload-auth-btn").onclick = async () => {
+      if (!state.user) return;
+      await state.user.reload();
+      state.isCloudAdmin = await checkCloudAdminStatus(auth.currentUser);
+      document.getElementById("email-verify-banner").classList.toggle("hidden", !!auth.currentUser.emailVerified);
+      document.getElementById("admin-auth-badge").classList.toggle("hidden", state.isCloudAdmin);
+      document.getElementById("admin-verified-pill").classList.toggle("hidden", !state.isCloudAdmin);
+      if (state.isCloudAdmin) startCloudListeners(auth.currentUser);
+    };
+
+    // Tabs switching
+    document.getElementById("admin-tabs").addEventListener("click", (e) => {
+      const btn = e.target.closest(".tab-btn");
+      if (!btn) return;
+      const target = btn.dataset.tab;
+      state.activeTab = target;
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      ["products", "offers", "categories", "wallets", "security"].forEach((t) => {
+        document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== target);
+      });
+      if (target === "security") loadSecurityLogs();
+    });
+
+    // Save & Sync actions
+    document.getElementById("save-sync-btn").onclick = publishWorkToCloud;
+
+    document.getElementById("discard-changes-btn").onclick = () => {
+      state.products = [...state.cloudProducts];
+      state.categories = JSON.parse(JSON.stringify(state.cloudCategories));
+      state.wallets = [...state.cloudWallets];
+      state.offerSlotProductIds = [...state.cloudOfferSlots];
+      state.deletedProductIds.clear();
+      state.deletedWalletIds.clear();
+      state.pendingPinPair = null;
+      state.pendingChanges = [];
+      state.hasUnsavedChanges = false;
+      renderAllTabs();
+    };
+
+    document.getElementById("seed-defaults-btn").onclick = () => {
+      if (state.products.length === 0) {
+        state.products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS_SAMPLE));
+        recordPendingChange("تحميل المنتجات الافتراضية لمتجر الجمل");
+      }
+      if (state.wallets.length === 0) {
+        state.wallets = JSON.parse(JSON.stringify(INITIAL_WALLETS_SAMPLE));
+        recordPendingChange("تحميل المحافظ الإلكترونية الافتراضية");
+      }
+      renderAllTabs();
+    };
+
+    document.getElementById("product-search-input").oninput = renderProducts;
+    document.getElementById("product-cat-filter").onchange = renderProducts;
+
+    // Quick Photo Pickers
+    document.getElementById("quick-product-photo-input").onchange = async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file || !state.quickTargetId) return;
+      const dataUrl = await compressImageFileToDataUrl(file);
+      state.products = state.products.map((p) => (p.id === state.quickTargetId ? { ...p, imageUrl: dataUrl } : p));
+      const targetProd = state.products.find((p) => p.id === state.quickTargetId);
+      recordPendingChange(`تغيير صورة: ${targetProd?.name || state.quickTargetId}`);
+      renderProducts();
+      renderOffers();
+    };
+
+    document.getElementById("quick-category-photo-input").onchange = async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file || !state.quickTargetId) return;
+      const dataUrl = await compressImageFileToDataUrl(file);
+      const cat = state.categories[state.quickTargetId];
+      if (cat) {
+        cat.customImageUrl = dataUrl;
+        recordPendingChange(`تغيير صورة قسم: ${cat.customTitle}`);
+        renderCategories();
+      }
+    };
+
+    // Product Add Modal
+    document.getElementById("open-add-product-btn").onclick = () => {
+      state.pendingModalProductImg = null;
+      document.getElementById("product-form").reset();
+      document.getElementById("prod-id").value = "";
+      document.getElementById("prod-image-preview").classList.add("hidden");
+      document.getElementById("modal-product").classList.remove("hidden");
+    };
+
+    document.getElementById("prod-image-file").onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const dataUrl = await compressImageFileToDataUrl(file);
+      state.pendingModalProductImg = dataUrl;
+      const prev = document.getElementById("prod-image-preview");
+      prev.src = dataUrl;
+      prev.classList.remove("hidden");
+    };
+
+    document.getElementById("product-form").onsubmit = (e) => {
+      e.preventDefault();
+      const name = document.getElementById("prod-name").value.trim();
+      const priceYer = Number(document.getElementById("prod-price").value);
+      const origRaw = document.getElementById("prod-orig-price").value;
+      const originalPriceYer = origRaw && Number(origRaw) > 0 ? Number(origRaw) : null;
+      const newProduct = {
+        id: `p_${Date.now()}`,
+        name,
+        categoryId: document.getElementById("prod-cat").value,
+        priceYer,
+        originalPriceYer,
+        unit: document.getElementById("prod-unit").value.trim() || "كجم",
+        origin: document.getElementById("prod-origin").value.trim() || "اليمن",
+        rating: 5.0,
+        badge: "جديد طازج",
+        discountPercent:
+          originalPriceYer && originalPriceYer > priceYer
+            ? Math.round(((originalPriceYer - priceYer) / originalPriceYer) * 100)
+            : null,
+        imageUrl: state.pendingModalProductImg || DEFAULT_SAFE_PRODUCT_IMAGE,
+        description: document.getElementById("prod-desc").value.trim() || "منتج طازج عالي الجودة من متجر الجمل.",
+        inStock: true
+      };
+      state.products = [newProduct, ...state.products];
+      state.deletedProductIds.delete(newProduct.id);
+      recordPendingChange(`إضافة منتج جديد: ${newProduct.name}`);
+      document.getElementById("modal-product").classList.add("hidden");
+      renderProducts();
+      renderOffers();
+    };
+
+    // Price Edit Form
+    document.getElementById("edit-price-form").onsubmit = (e) => {
+      e.preventDefault();
+      const id = document.getElementById("edit-price-id").value;
+      const newPrice = Number(document.getElementById("edit-price-value").value);
+      const origRaw = document.getElementById("edit-orig-price-value").value;
+      const origPrice = origRaw && Number(origRaw) > 0 ? Number(origRaw) : null;
+      state.products = state.products.map((p) => {
+        if (p.id !== id) return p;
+        const discount = origPrice && origPrice > newPrice ? Math.round(((origPrice - newPrice) / origPrice) * 100) : null;
+        return { ...p, priceYer: newPrice, originalPriceYer: origPrice, discountPercent: discount };
+      });
+      const prod = state.products.find((x) => x.id === id);
+      recordPendingChange(`تعديل سعر: ${prod?.name || id} (${Math.round(newPrice)} ر.ي)`);
+      document.getElementById("modal-edit-price").classList.add("hidden");
+      renderProducts();
+      renderOffers();
+    };
+
+    // Category Edit Form
+    document.getElementById("category-form").onsubmit = (e) => {
+      e.preventDefault();
+      const id = document.getElementById("cat-edit-id").value;
+      const title = document.getElementById("cat-edit-title").value.trim();
+      const subtitle = document.getElementById("cat-edit-subtitle").value.trim();
+      if (state.categories[id] && title) {
+        state.categories[id].customTitle = title;
+        state.categories[id].customSubtitle = subtitle;
+        recordPendingChange(`تحديث قسم: ${title}`);
+        document.getElementById("modal-category").classList.add("hidden");
+        renderCategories();
+      }
+    };
+
+    // Wallet Add / Edit Form
+    document.getElementById("open-add-wallet-btn").onclick = () => openWalletModal(null);
+    document.getElementById("wallet-form").onsubmit = (e) => {
+      e.preventDefault();
+      const editId = document.getElementById("wallet-edit-id").value;
+      const item = {
+        id: editId || `w_${Date.now()}`,
+        name: document.getElementById("wallet-name").value.trim(),
+        accountNumber: document.getElementById("wallet-number").value.trim(),
+        accountHolder: document.getElementById("wallet-holder").value.trim(),
+        note: document.getElementById("wallet-note").value.trim(),
+        isEnabled: true
+      };
+      if (editId) {
+        state.wallets = state.wallets.map((w) => (w.id === editId ? item : w));
+        recordPendingChange(`تعديل محفظة: ${item.name}`);
+      } else {
+        state.wallets = [...state.wallets, item];
+        state.deletedWalletIds.delete(item.id);
+        recordPendingChange(`إضافة محفظة: ${item.name}`);
+      }
+      document.getElementById("modal-wallet").classList.add("hidden");
+      renderWallets();
+    };
+
+    // Change Admin PIN Form
+    document.getElementById("change-pin-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const fb = document.getElementById("change-pin-feedback");
+      fb.classList.add("hidden");
+      try {
+        const pair = await Security.changeAdminPin(
+          document.getElementById("old-pin-input").value,
+          document.getElementById("new-pin-input").value
+        );
+        state.pendingPinPair = pair;
+        document.getElementById("old-pin-input").value = "";
+        document.getElementById("new-pin-input").value = "";
+        recordPendingChange("تحديث كلمة سر المدير المشفرة (SHA-256)");
+        logSecurityEvent("PIN_CHANGED", "تم تغيير كلمة سر المدير من لوحة الويب");
+        fb.className = "alert-box alert-success";
+        fb.textContent = "تم تحديث كلمة السر وتشفيرها بنجاح! اضغط «حفظ العمل ومزامنة مع كل الأجهزة» لحفظها سحابياً.";
+        fb.classList.remove("hidden");
+      } catch (err) {
+        fb.className = "alert-box alert-error";
+        fb.textContent = err.message;
+        fb.classList.remove("hidden");
+      }
+    };
+
+    document.getElementById("refresh-logs-btn").onclick = loadSecurityLogs;
+
+    document.querySelectorAll(".close-modal-btn").forEach((btn) => {
+      btn.onclick = () => document.getElementById(btn.dataset.modal).classList.add("hidden");
+    });
+
+    // ===== AUTH STATE OBSERVER =====
+    onAuthStateChanged(auth, async (user) => {
+      state.user = user;
+      if (!user) {
+        clearListeners();
+        state.pinUnlocked = false;
+        showScreen("auth");
+        return;
+      }
+
+      document.getElementById("signed-in-email").textContent = user.email || "";
+      document.getElementById("pin-user-email").textContent = `الحساب المسجّل: ${user.email || ""}`;
+      document.getElementById("email-verify-banner").classList.toggle("hidden", !!user.emailVerified);
+
+      await ensureUserProfile(user);
+      state.isCloudAdmin = await checkCloudAdminStatus(user);
+      document.getElementById("admin-auth-badge").classList.toggle("hidden", state.isCloudAdmin);
+      document.getElementById("admin-verified-pill").classList.toggle("hidden", !state.isCloudAdmin);
+
+      startCloudListeners(user);
+
+      if (state.pinUnlocked) {
+        showScreen("dashboard");
+      } else {
+        showScreen("pin");
+        refreshPinLockUi();
+      }
+    });
+  </script>
+</body>
+</html>

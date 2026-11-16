@@ -66,9 +66,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -105,12 +107,33 @@ import com.example.ui.theme.Stone900
 import com.example.ui.theme.Stone950
 import com.example.ui.theme.White
 
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.data.remote.CloudSyncMetadata
+import com.example.data.security.AdminSecurityManager
+import com.example.data.security.SecurityFirewallState
+import com.example.ui.theme.Red50
+import com.example.ui.viewmodel.CloudSyncStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 private enum class AdminTab(val title: String) {
     PRODUCTS("المنتجات والأسعار"),
     OFFERS("العروض الخاصة"),
     CATEGORIES("أقسام المتجر"),
     WALLETS("المحافظ والحسابات"),
-    PIN("رمز المرور")
+    PIN("الحماية وكلمة السر")
 }
 
 @Composable
@@ -124,11 +147,21 @@ fun AdminScreen(
     storePhone: String,
     storeWhatsApp: String,
     storeLocation: String,
-    adminPin: String,
+    adminWebUrl: String = "https://spiffy-sawine-8f76cc.netlify.app",
+    signedInUserEmail: String,
+    isCloudAdminAuthorized: Boolean,
+    hasUnsavedAdminChanges: Boolean,
+    pendingAdminChanges: List<String>,
+    cloudSyncStatus: CloudSyncStatus,
+    cloudSyncMetadata: CloudSyncMetadata,
+    firewallState: SecurityFirewallState,
     walletAccounts: List<WalletAccount>,
     categoryCustomizations: Map<String, CategoryCustomization>,
     onUnlockAdminRequest: () -> Unit,
     onLockAdmin: () -> Unit,
+    onSignOutClick: () -> Unit,
+    onSaveAndSyncToCloud: () -> Unit,
+    onDiscardPendingChanges: () -> Unit,
     onToggleOfferSlot: (String) -> Unit,
     onUpdatePrice: (String, Double, Double?) -> Unit,
     onUpdateProductImage: (String, String) -> Unit,
@@ -138,7 +171,7 @@ fun AdminScreen(
     onAddWalletAccount: (WalletAccount) -> Unit,
     onUpdateWalletAccount: (WalletAccount) -> Unit,
     onDeleteWalletAccount: (String) -> Unit,
-    onChangeAdminPin: (String) -> Unit,
+    onChangeAdminPassword: (String, String) -> Result<Unit>,
     onProductClick: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
     onDecrement: (Product) -> Unit,
@@ -146,6 +179,9 @@ fun AdminScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val coroutineScope = rememberCoroutineScope()
+    var copiedWebUrl by remember { mutableStateOf(false) }
 
     // Active Admin sub-tab
     var activeAdminTab by remember { mutableStateOf(AdminTab.PRODUCTS) }
@@ -161,31 +197,39 @@ fun AdminScreen(
     var targetProductIdForPhoto by remember { mutableStateOf<String?>(null) }
     var targetCategoryIdForPhoto by remember { mutableStateOf<String?>(null) }
 
-    // Photo Pickers (Zero permission Android Photo Picker)
+    // Photo Pickers (Zero permission Android Photo Picker + Cloud-sync JPEG compression)
     val productPhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
-        if (uri != null) {
-            targetProductIdForPhoto?.let { id ->
-                onUpdateProductImage(id, uri.toString())
+        val targetId = targetProductIdForPhoto
+        targetProductIdForPhoto = null
+        if (uri != null && targetId != null) {
+            coroutineScope.launch {
+                val compressed = withContext(Dispatchers.IO) {
+                    AdminSecurityManager.compressPickedImageToDataUrl(context, uri)
+                } ?: uri.toString()
+                onUpdateProductImage(targetId, compressed)
             }
         }
-        targetProductIdForPhoto = null
     }
 
     val categoryPhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
-        if (uri != null) {
-            targetCategoryIdForPhoto?.let { catId ->
+        val catId = targetCategoryIdForPhoto
+        targetCategoryIdForPhoto = null
+        if (uri != null && catId != null) {
+            coroutineScope.launch {
+                val compressed = withContext(Dispatchers.IO) {
+                    AdminSecurityManager.compressPickedImageToDataUrl(context, uri)
+                } ?: uri.toString()
                 val existing = categoryCustomizations[catId]
                 val catObj = ProductCategory.values().find { it.id == catId }
                 val title = existing?.customTitle ?: catObj?.title ?: ""
                 val subtitle = existing?.customSubtitle ?: catObj?.subtitle ?: ""
-                onUpdateCategory(catId, title, subtitle, uri.toString())
+                onUpdateCategory(catId, title, subtitle, compressed)
             }
         }
-        targetCategoryIdForPhoto = null
     }
 
     LazyColumn(
@@ -250,6 +294,37 @@ fun AdminScreen(
                                 color = Stone500,
                                 fontWeight = FontWeight.Medium
                             )
+                            if (signedInUserEmail.isNotBlank()) {
+                                Text(
+                                    text = if (isCloudAdminAuthorized) {
+                                        "مدير النظام: $signedInUserEmail ✓"
+                                    } else {
+                                        "الحساب المتصل: $signedInUserEmail"
+                                    },
+                                    fontSize = 9.5.sp,
+                                    color = Emerald800,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Stone100)
+                                .clickable { onSignOutClick() }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "تسجيل الخروج",
+                                    tint = Stone700,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("خروج", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Stone700)
+                            }
                         }
                     }
 
@@ -400,8 +475,366 @@ fun AdminScreen(
             }
         }
 
-        // FULL ADMIN DASHBOARD WHEN UNLOCKED
+        // SAVE WORK & CLOUD SYNC MENU (قائمة حفظ العمل ومزامنته مع جميع الأجهزة)
         if (isAdminUnlocked) {
+            item {
+                val isSyncing = cloudSyncStatus is CloudSyncStatus.Syncing
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("save_and_sync_menu_card"),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (hasUnsavedAdminChanges) Amber100 else Emerald50
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.5.dp,
+                        if (hasUnsavedAdminChanges) Amber500 else Emerald700
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (hasUnsavedAdminChanges) Amber400 else Emerald800),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (hasUnsavedAdminChanges) Icons.Default.CloudSync else Icons.Default.CloudDone,
+                                        contentDescription = null,
+                                        tint = if (hasUnsavedAdminChanges) Stone950 else White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "قائمة حفظ العمل والمزامنة السحابية",
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Stone900
+                                    )
+                                    Text(
+                                        text = when {
+                                            isSyncing -> "جاري رفع وحفظ التعديلات ومزامنتها مع كل الأجهزة..."
+                                            hasUnsavedAdminChanges -> "يوجد ${pendingAdminChanges.size} عمل/تعديلات جاهزة للحفظ والمزامنة"
+                                            cloudSyncMetadata.syncVersion > 0 ->
+                                                "مزامن مع كافة الأجهزة ولوحة الويب (إصدار #${cloudSyncMetadata.syncVersion}${if (cloudSyncMetadata.lastSyncedByName.isNotBlank()) " • ${cloudSyncMetadata.lastSyncedByName}" else ""})"
+                                            else -> "اضغط حفظ ومزامنة لنشر الكتالوج وربطه بلوحة الويب وكل الأجهزة"
+                                        },
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (hasUnsavedAdminChanges) Amber950 else Emerald900
+                                    )
+                                }
+                            }
+
+                            if (isCloudAdminAuthorized) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Emerald100)
+                                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                                ) {
+                                    Text("مدير النظام المخوّل ✓", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Emerald900)
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Red50)
+                                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                                ) {
+                                    Text("حساب غير مخول للنشر", fontSize = 8.5.sp, fontWeight = FontWeight.Bold, color = Red500)
+                                }
+                            }
+                        }
+
+                        // Pending changes preview list
+                        if (pendingAdminChanges.isNotEmpty()) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = White.copy(alpha = 0.85f)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Text(
+                                        text = "الأعمال والتعديلات المعلقة للحفظ:",
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Stone700
+                                    )
+                                    pendingAdminChanges.take(5).forEach { summary ->
+                                        Text(
+                                            text = "• $summary",
+                                            fontSize = 9.5.sp,
+                                            color = Stone900
+                                        )
+                                    }
+                                    if (pendingAdminChanges.size > 5) {
+                                        Text(
+                                            text = "+ ${pendingAdminChanges.size - 5} تعديلات أخرى...",
+                                            fontSize = 9.sp,
+                                            color = Stone500
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Sync Status Message
+                        when (cloudSyncStatus) {
+                            is CloudSyncStatus.SyncedSuccess -> {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Emerald100
+                                ) {
+                                    Text(
+                                        text = cloudSyncStatus.message,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Emerald900,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+
+                            is CloudSyncStatus.SyncError -> {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Red50
+                                ) {
+                                    Text(
+                                        text = cloudSyncStatus.message,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Red500,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+
+                            else -> Unit
+                        }
+
+                        // Action Buttons Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = onSaveAndSyncToCloud,
+                                enabled = !isSyncing,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(42.dp)
+                                    .testTag("save_and_sync_button"),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (hasUnsavedAdminChanges) Emerald800 else Emerald900
+                                )
+                            ) {
+                                if (isSyncing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("جاري الحفظ والمزامنة...", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = White)
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (hasUnsavedAdminChanges) "حفظ العمل ومزامنة مع كل الأجهزة" else "مزامنة فورية مع كل الأجهزة",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = White
+                                    )
+                                }
+                            }
+
+                            if (hasUnsavedAdminChanges && !isSyncing) {
+                                OutlinedButton(
+                                    onClick = onDiscardPendingChanges,
+                                    modifier = Modifier.height(42.dp),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Stone700, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("تراجع", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Stone700)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // CONNECTED WEB ADMIN DASHBOARD CARD (ربط لوحة تحكم الويب على Netlify)
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("web_admin_link_card"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = White),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Emerald300),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(RoundedCornerShape(9.dp))
+                                        .background(Emerald100),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Public,
+                                        contentDescription = null,
+                                        tint = Emerald800,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "ربط لوحة تحكم المدير عبر الويب",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Emerald950
+                                    )
+                                    Text(
+                                        text = adminWebUrl.removePrefix("https://"),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Emerald700
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Emerald100)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "متصل ومتزامن",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Emerald900
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "أي تعديل أو إضافة في الأسعار أو العروض أو الصور أو المحافظ أو كلمة السر من رابط الويب ينعكس تلقائياً في التطبيق وعلى كل الأجهزة.",
+                            fontSize = 9.5.sp,
+                            color = Stone700,
+                            lineHeight = 14.sp
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(adminWebUrl))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                        clipboardManager.setText(AnnotatedString(adminWebUrl))
+                                        copiedWebUrl = true
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .testTag("open_web_admin_button"),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Emerald800)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.OpenInBrowser,
+                                    contentDescription = null,
+                                    tint = White,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text("فتح لوحة الويب", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = White)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(adminWebUrl))
+                                    copiedWebUrl = true
+                                },
+                                modifier = Modifier
+                                    .height(40.dp)
+                                    .testTag("copy_web_admin_button"),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (copiedWebUrl) Icons.Default.Check else Icons.Default.ContentCopy,
+                                    contentDescription = "نسخ رابط لوحة المدير",
+                                    tint = Emerald800,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (copiedWebUrl) "تم النسخ ✓" else "نسخ الرابط",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Emerald800
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -611,20 +1044,20 @@ fun AdminScreen(
 
                                 AdminTab.OFFERS -> {
                                     Text(
-                                        text = "التحكم في خانات العروض الخاصة (${offerSlotItemIds.size} من 4 خانات مختارة):",
+                                        text = "التحكم في أصناف العروض الخاصة (${offerSlotItemIds.size} من 4 خانات مختارة):",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Stone900
                                     )
                                     Text(
-                                        text = "حدد المنتجات لتظهر في بنر العروض بالرئيسية ويمكنك تبديل صورتها من استديو الهاتف مباشرة",
+                                        text = "حدد المنتجات لتظهر في قسم العروض الخاصة بالرئيسية، ويمكنك تعديل السعر أو تبديل الصورة من استديو الهاتف مباشرة.",
                                         fontSize = 10.sp,
                                         color = Stone500
                                     )
 
                                     Spacer(modifier = Modifier.height(10.dp))
 
-                                    products.take(15).forEach { prod ->
+                                    products.forEach { prod ->
                                         val isInSlot = offerSlotItemIds.contains(prod.id)
                                         Row(
                                             modifier = Modifier
@@ -654,14 +1087,26 @@ fun AdminScreen(
                                                 )
                                             }
 
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
                                                 Text(
                                                     text = "${prod.priceYer.toInt()} ر.ي",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = Emerald900
                                                 )
-                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(26.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Emerald100)
+                                                        .clickable { productToEditPrice = prod },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(Icons.Default.Edit, contentDescription = "تعديل السعر", tint = Emerald900, modifier = Modifier.size(13.dp))
+                                                }
                                                 Box(
                                                     modifier = Modifier
                                                         .clip(RoundedCornerShape(6.dp))
@@ -900,19 +1345,71 @@ fun AdminScreen(
                                     var pinMessage by remember { mutableStateOf<String?>(null) }
                                     var pinSuccess by remember { mutableStateOf(false) }
 
+                                    // Anti-Intrusion Firewall Status Card
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Emerald50),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Emerald300)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Shield,
+                                                    contentDescription = null,
+                                                    tint = Emerald900,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "جدار الحماية القوي ضد الاختراقات (مفعّل)",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = Emerald950
+                                                )
+                                            }
+                                            Text(
+                                                text = "• تشفير كلمة سر المدير بخوارزمية SHA-256 + Salt ومقارنة ثابتة الزمن.",
+                                                fontSize = 10.sp,
+                                                color = Stone700
+                                            )
+                                            Text(
+                                                text = "• حظر تلقائي تصاعدي عند محاولات التخمين (بعد 3 محاولات فاشلة).",
+                                                fontSize = 10.sp,
+                                                color = Stone700
+                                            )
+                                            Text(
+                                                text = "• قواعد أمان سحابية Zero-Trust في Firestore لمنع التعديل غير المصرح به.",
+                                                fontSize = 10.sp,
+                                                color = Stone700
+                                            )
+                                            Text(
+                                                text = "محاولات الاختراق المحظورة: ${firewallState.totalIntrusionBlocks}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = if (firewallState.totalIntrusionBlocks > 0) Red500 else Emerald800
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(14.dp))
+
                                     Text(
-                                        text = "تغيير رمز المرور الخاص بلوحة تحكم المدير:",
+                                        text = "تغيير كلمة سر لوحة تحكم المدير:",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Stone900
                                     )
 
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
 
                                     OutlinedTextField(
                                         value = currentPinInput,
                                         onValueChange = { currentPinInput = it },
-                                        label = { Text("رمز المرور الحالي", fontSize = 11.sp) },
+                                        label = { Text("كلمة السر الحالية", fontSize = 11.sp) },
                                         visualTransformation = PasswordVisualTransformation(),
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth(),
@@ -924,7 +1421,7 @@ fun AdminScreen(
                                     OutlinedTextField(
                                         value = newPinInput,
                                         onValueChange = { newPinInput = it },
-                                        label = { Text("رمز المرور الجديد", fontSize = 11.sp) },
+                                        label = { Text("كلمة السر الجديدة (6 أرقام/رموز فأكثر)", fontSize = 11.sp) },
                                         visualTransformation = PasswordVisualTransformation(),
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth(),
@@ -945,25 +1442,52 @@ fun AdminScreen(
 
                                     Button(
                                         onClick = {
-                                            if (currentPinInput != adminPin && currentPinInput != "1234") {
-                                                pinMessage = "رمز المرور الحالي غير صحيح!"
-                                                pinSuccess = false
-                                            } else if (newPinInput.length < 4) {
-                                                pinMessage = "يجب أن يتكون رمز المرور الجديد من 4 أرقام على الأقل"
-                                                pinSuccess = false
-                                            } else {
-                                                onChangeAdminPin(newPinInput)
-                                                pinMessage = "تم تحديث رمز المرور بنجاح!"
-                                                pinSuccess = true
-                                                currentPinInput = ""
-                                                newPinInput = ""
-                                            }
+                                            val result = onChangeAdminPassword(currentPinInput, newPinInput)
+                                            result.fold(
+                                                onSuccess = {
+                                                    pinMessage = "تم تحديث كلمة السر وتشفيرها! اضغط «حفظ العمل ومزامنة» لحفظها سحابياً."
+                                                    pinSuccess = true
+                                                    currentPinInput = ""
+                                                    newPinInput = ""
+                                                },
+                                                onFailure = { err ->
+                                                    pinMessage = err.message ?: "تعذر تحديث كلمة السر"
+                                                    pinSuccess = false
+                                                }
+                                            )
                                         },
                                         modifier = Modifier.fillMaxWidth().height(42.dp),
                                         shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = Emerald800)
                                     ) {
-                                        Text("حفظ رمز المرور الجديد", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = White)
+                                        Text("تحديث وحماية كلمة السر", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = White)
+                                    }
+
+                                    if (firewallState.recentAlerts.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(14.dp))
+                                        Text(
+                                            text = "سجل الأمان ومراقبة الاختراقات:",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Stone900
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        firewallState.recentAlerts.take(6).forEach { alert ->
+                                            Surface(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 2.dp),
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = Stone100
+                                            ) {
+                                                Text(
+                                                    text = "• $alert",
+                                                    fontSize = 9.5.sp,
+                                                    color = Stone700,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1115,7 +1639,12 @@ fun AdminScreen(
             contract = ActivityResultContracts.PickVisualMedia()
         ) { uri: Uri? ->
             if (uri != null) {
-                newImageUri = uri.toString()
+                coroutineScope.launch {
+                    val compressed = withContext(Dispatchers.IO) {
+                        AdminSecurityManager.compressPickedImageToDataUrl(context, uri)
+                    } ?: uri.toString()
+                    newImageUri = compressed
+                }
             }
         }
 

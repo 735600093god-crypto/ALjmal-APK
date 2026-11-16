@@ -17,6 +17,7 @@ class StoreRepository {
     val storePhone = "776662630"
     val storeWhatsApp = "967776662630"
     val storeLocation = "صنعاء - حدة داخل التوفير هايبر"
+    val adminWebDashboardUrl = "https://spiffy-sawine-8f76cc.netlify.app"
 
     val sanaaLocations = listOf(
         "حدة - داخل التوفير هايبر",
@@ -478,14 +479,6 @@ class StoreRepository {
     val favorites: StateFlow<Set<String>> = _favorites.asStateFlow()
 
     // 4 Slots for exclusive offers (default empty as in HTML: 0 من 4 خانات)
-    // Admin Password / PIN (default 1234)
-    private val _adminPin = MutableStateFlow("1234")
-    val adminPin: StateFlow<String> = _adminPin.asStateFlow()
-
-    fun setAdminPin(newPin: String) {
-        _adminPin.value = newPin
-    }
-
     // Dynamic Wallet Accounts
     private val initialWallets = listOf(
         WalletAccount(
@@ -541,35 +534,12 @@ class StoreRepository {
     private val _walletAccounts = MutableStateFlow(initialWallets)
     val walletAccounts: StateFlow<List<WalletAccount>> = _walletAccounts.asStateFlow()
 
-    fun addWalletAccount(account: WalletAccount) {
-        _walletAccounts.update { it + account }
-    }
-
-    fun updateWalletAccount(account: WalletAccount) {
-        _walletAccounts.update { list ->
-            list.map { if (it.id == account.id) account else it }
-        }
-    }
-
-    fun deleteWalletAccount(id: String) {
-        _walletAccounts.update { list ->
-            list.filter { it.id != id }
-        }
-    }
-
     // Category Customizations
-    private val _categoryCustomizations = MutableStateFlow<Map<String, CategoryCustomization>>(
-        ProductCategory.values().associate { cat ->
-            cat.id to CategoryCustomization(cat.id, cat.title, cat.subtitle, cat.defaultImageUrl)
-        }
-    )
-    val categoryCustomizations: StateFlow<Map<String, CategoryCustomization>> = _categoryCustomizations.asStateFlow()
-
-    fun updateCategory(categoryId: String, newTitle: String, newSubtitle: String, newImageUrl: String?) {
-        _categoryCustomizations.update { current ->
-            current + (categoryId to CategoryCustomization(categoryId, newTitle, newSubtitle, newImageUrl))
-        }
+    private val initialCategoryCustomizations = ProductCategory.values().associate { cat ->
+        cat.id to CategoryCustomization(cat.id, cat.title, cat.subtitle, cat.defaultImageUrl)
     }
+    private val _categoryCustomizations = MutableStateFlow(initialCategoryCustomizations)
+    val categoryCustomizations: StateFlow<Map<String, CategoryCustomization>> = _categoryCustomizations.asStateFlow()
 
     private val _offerSlotProductIds = MutableStateFlow<List<String>>(emptyList())
     val offerSlotProductIds: StateFlow<List<String>> = _offerSlotProductIds.asStateFlow()
@@ -579,6 +549,128 @@ class StoreRepository {
 
     private val _currency = MutableStateFlow(Currency.YER)
     val currency: StateFlow<Currency> = _currency.asStateFlow()
+
+    // Admin Unsaved Work & Cloud Sync Tracking
+    private val _pendingChangeSummaries = MutableStateFlow<List<String>>(emptyList())
+    val pendingChangeSummaries: StateFlow<List<String>> = _pendingChangeSummaries.asStateFlow()
+
+    private val _hasUnsavedChanges = MutableStateFlow(false)
+    val hasUnsavedChanges: StateFlow<Boolean> = _hasUnsavedChanges.asStateFlow()
+
+    private val _deletedProductIds = MutableStateFlow<Set<String>>(emptySet())
+    val deletedProductIds: StateFlow<Set<String>> = _deletedProductIds.asStateFlow()
+
+    private val _deletedWalletIds = MutableStateFlow<Set<String>>(emptySet())
+    val deletedWalletIds: StateFlow<Set<String>> = _deletedWalletIds.asStateFlow()
+
+    // Last received cloud state so local drafts can revert cleanly
+    private var lastCloudProducts: List<Product>? = null
+    private var lastCloudCategories: Map<String, CategoryCustomization>? = null
+    private var lastCloudWallets: List<WalletAccount>? = null
+    private var lastCloudOfferSlots: List<String>? = null
+
+    private fun recordPendingChange(description: String) {
+        _hasUnsavedChanges.value = true
+        _pendingChangeSummaries.update { list ->
+            (listOf(description) + list).distinct().take(20)
+        }
+    }
+
+    fun markWorkSavedAndSynced() {
+        _hasUnsavedChanges.value = false
+        _pendingChangeSummaries.value = emptyList()
+        _deletedProductIds.value = emptySet()
+        _deletedWalletIds.value = emptySet()
+        lastCloudProducts = _products.value
+        lastCloudCategories = _categoryCustomizations.value
+        lastCloudWallets = _walletAccounts.value
+        lastCloudOfferSlots = _offerSlotProductIds.value
+    }
+
+    fun discardPendingChanges() {
+        lastCloudProducts?.let { _products.value = it } ?: run { _products.value = initialProducts }
+        lastCloudCategories?.let { _categoryCustomizations.value = it } ?: run { _categoryCustomizations.value = initialCategoryCustomizations }
+        lastCloudWallets?.let { _walletAccounts.value = it } ?: run { _walletAccounts.value = initialWallets }
+        lastCloudOfferSlots?.let { _offerSlotProductIds.value = it } ?: run { _offerSlotProductIds.value = emptyList() }
+        _hasUnsavedChanges.value = false
+        _pendingChangeSummaries.value = emptyList()
+        _deletedProductIds.value = emptySet()
+        _deletedWalletIds.value = emptySet()
+    }
+
+    private val initialProductOrderMap = initialProducts.mapIndexed { index, product ->
+        product.id to index
+    }.toMap()
+
+    fun applyCloudProducts(cloudProducts: List<Product>) {
+        if (cloudProducts.isEmpty()) return
+        val ordered = cloudProducts.sortedWith(
+            compareBy<Product> { prod ->
+                if (initialProductOrderMap.containsKey(prod.id)) 1 else 0
+            }.thenByDescending { prod ->
+                if (initialProductOrderMap.containsKey(prod.id)) "" else prod.id
+            }.thenBy { prod ->
+                initialProductOrderMap[prod.id] ?: Int.MAX_VALUE
+            }
+        )
+        lastCloudProducts = ordered
+        if (!_hasUnsavedChanges.value) {
+            _products.value = ordered
+        }
+    }
+
+    fun applyCloudCategories(cloudCategories: Map<String, CategoryCustomization>) {
+        if (cloudCategories.isEmpty()) return
+        val merged = initialCategoryCustomizations + cloudCategories
+        lastCloudCategories = merged
+        if (!_hasUnsavedChanges.value) {
+            _categoryCustomizations.value = merged
+        }
+    }
+
+    fun applyCloudWallets(cloudWallets: List<WalletAccount>) {
+        if (cloudWallets.isEmpty()) return
+        lastCloudWallets = cloudWallets
+        if (!_hasUnsavedChanges.value) {
+            _walletAccounts.value = cloudWallets
+        }
+    }
+
+    fun applyCloudOfferSlots(cloudOfferIds: List<String>) {
+        lastCloudOfferSlots = cloudOfferIds
+        if (!_hasUnsavedChanges.value) {
+            _offerSlotProductIds.value = cloudOfferIds
+        }
+    }
+
+    fun addWalletAccount(account: WalletAccount) {
+        _walletAccounts.update { it + account }
+        _deletedWalletIds.update { it - account.id }
+        recordPendingChange("إضافة محفظة: ${account.name}")
+    }
+
+    fun updateWalletAccount(account: WalletAccount) {
+        _walletAccounts.update { list ->
+            list.map { if (it.id == account.id) account else it }
+        }
+        recordPendingChange("تعديل محفظة: ${account.name}")
+    }
+
+    fun deleteWalletAccount(id: String) {
+        val target = _walletAccounts.value.find { it.id == id }
+        _walletAccounts.update { list ->
+            list.filter { it.id != id }
+        }
+        _deletedWalletIds.update { it + id }
+        recordPendingChange("حذف محفظة: ${target?.name ?: id}")
+    }
+
+    fun updateCategory(categoryId: String, newTitle: String, newSubtitle: String, newImageUrl: String?) {
+        _categoryCustomizations.update { current ->
+            current + (categoryId to CategoryCustomization(categoryId, newTitle, newSubtitle, newImageUrl))
+        }
+        recordPendingChange("تحديث قسم: $newTitle")
+    }
 
     fun setCurrency(newCurrency: Currency) {
         _currency.value = newCurrency
@@ -623,20 +715,28 @@ class StoreRepository {
     }
 
     fun toggleOfferSlot(productId: String) {
+        val prodName = _products.value.find { it.id == productId }?.name ?: productId
+        var changed = false
         _offerSlotProductIds.update { slots ->
             if (slots.contains(productId)) {
+                changed = true
                 slots - productId
             } else {
                 if (slots.size < 4) {
+                    changed = true
                     slots + productId
                 } else {
                     slots
                 }
             }
         }
+        if (changed) {
+            recordPendingChange("تعديل العروض الخاصة: $prodName")
+        }
     }
 
     fun updateProductPrice(productId: String, newPriceYer: Double, newOriginalPriceYer: Double?) {
+        val prodName = _products.value.find { it.id == productId }?.name ?: productId
         _products.update { list ->
             list.map { product ->
                 if (product.id == productId) {
@@ -654,9 +754,11 @@ class StoreRepository {
                 }
             }
         }
+        recordPendingChange("تعديل سعر: $prodName (${newPriceYer.toInt()} ر.ي)")
     }
 
     fun updateProductImage(productId: String, newImageUrl: String) {
+        val prodName = _products.value.find { it.id == productId }?.name ?: productId
         _products.update { list ->
             list.map { product ->
                 if (product.id == productId) {
@@ -666,15 +768,18 @@ class StoreRepository {
                 }
             }
         }
+        recordPendingChange("تغيير صورة: $prodName")
     }
 
     fun updateProduct(product: Product) {
         _products.update { list ->
             list.map { if (it.id == product.id) product else it }
         }
+        recordPendingChange("تحديث منتج: ${product.name}")
     }
 
     fun deleteProduct(productId: String) {
+        val prodName = _products.value.find { it.id == productId }?.name ?: productId
         _products.update { list ->
             list.filter { it.id != productId }
         }
@@ -684,9 +789,13 @@ class StoreRepository {
         _cart.update { cart ->
             cart - productId
         }
+        _deletedProductIds.update { it + productId }
+        recordPendingChange("حذف منتج: $prodName")
     }
 
     fun addNewProduct(product: Product) {
         _products.update { listOf(product) + it }
+        _deletedProductIds.update { it - product.id }
+        recordPendingChange("إضافة منتج جديد: ${product.name}")
     }
 }

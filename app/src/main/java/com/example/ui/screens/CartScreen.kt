@@ -1,7 +1,15 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,18 +28,27 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
@@ -46,12 +63,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.data.model.CartItem
@@ -59,9 +80,10 @@ import com.example.data.model.Currency
 import com.example.data.model.OrderSubmission
 import com.example.data.model.Product
 import com.example.data.model.WalletAccount
+import com.example.ui.theme.Amber100
 import com.example.ui.theme.Amber400
-import com.example.ui.theme.Amber500
 import com.example.ui.theme.Amber950
+import com.example.ui.theme.Emerald100
 import com.example.ui.theme.Emerald300
 import com.example.ui.theme.Emerald50
 import com.example.ui.theme.Emerald600
@@ -71,13 +93,15 @@ import com.example.ui.theme.Emerald950
 import com.example.ui.theme.Red500
 import com.example.ui.theme.Stone100
 import com.example.ui.theme.Stone200
-import com.example.ui.theme.Stone300
 import com.example.ui.theme.Stone400
 import com.example.ui.theme.Stone500
 import com.example.ui.theme.Stone700
 import com.example.ui.theme.Stone900
 import com.example.ui.theme.Stone950
 import com.example.ui.theme.White
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 
 @Composable
 fun CartScreen(
@@ -93,20 +117,69 @@ fun CartScreen(
     onDecrement: (Product) -> Unit,
     onRemoveFromCart: (Product) -> Unit,
     onClearCart: () -> Unit,
-    onSubmitOrder: (String, String, String, String, String, String?) -> OrderSubmission?,
+    onSubmitOrder: (
+        customerName: String,
+        customerPhone: String,
+        recipientName: String,
+        recipientPhone: String,
+        deliveryAddress: String,
+        googleMapsLocationUrl: String,
+        deliveryNotes: String,
+        paymentMethodName: String,
+        walletDetails: String?,
+        paymentTransactionNumber: String
+    ) -> OrderSubmission?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
 
+    // Customer & Recipient Fields
     var customerName by remember { mutableStateOf("") }
     var customerPhone by remember { mutableStateOf("") }
-    var deliveryAddress by remember { mutableStateOf(defaultLocation) }
+    var recipientName by remember { mutableStateOf("") }
+    var recipientPhone by remember { mutableStateOf("") }
+
+    // Optional Written Address & Live Google Maps Location
+    var deliveryAddress by remember { mutableStateOf("") }
+    var googleMapsLocationUrl by remember { mutableStateOf("") }
+    var isFetchingLocation by remember { mutableStateOf(false) }
+    var locationStatusText by remember { mutableStateOf<String?>(null) }
     var deliveryNotes by remember { mutableStateOf("") }
-    // Default to Cash or first wallet
+
+    // Payment & Transaction Reference
     var selectedWalletId by remember(walletAccounts) {
-        mutableStateOf(walletAccounts.firstOrNull { it.id == "w_cash" }?.id ?: walletAccounts.firstOrNull()?.id ?: "cash")
+        mutableStateOf(
+            walletAccounts.firstOrNull { it.id == "w_cash" }?.id
+                ?: walletAccounts.firstOrNull()?.id
+                ?: "w_cash"
+        )
     }
+    var paymentTransactionNumber by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            isFetchingLocation = true
+            locationStatusText = "جاري التقاط موقعك المباشر..."
+            fetchCurrentLocation(
+                context = context,
+                onSuccess = { lat, lng ->
+                    isFetchingLocation = false
+                    googleMapsLocationUrl = "https://maps.google.com/?q=$lat,$lng"
+                    locationStatusText = "✓ تم التقاط موقعك المباشر وإرفاق رابط خرائط جوجل"
+                },
+                onFailure = { errorMsg ->
+                    isFetchingLocation = false
+                    locationStatusText = errorMsg
+                }
+            )
+        } else {
+            locationStatusText = "تم رفض إذن الموقع. يمكنك تفعيله من الإعدادات أو نسخ رابط الموقع من خرائط جوجل يدوياً."
+        }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -348,9 +421,9 @@ fun CartScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "ملخص الفاتورة",
+                            text = "ملخص الفاتورة ومجموع الطلب",
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
                             color = Stone900
                         )
 
@@ -358,7 +431,7 @@ fun CartScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("إجمالي الأصناف:", fontSize = 11.5.sp, color = Stone700)
+                            Text("إجمالي الأصناف (${cartItems.sumOf { it.quantity }}):", fontSize = 11.5.sp, color = Stone700)
                             Text("${subtotalYer.toInt()} ر.ي", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Stone900)
                         }
 
@@ -382,7 +455,7 @@ fun CartScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("المبلغ الإجمالي المستحق:", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Stone900)
+                            Text("المجموع الإجمالي المستحق:", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Stone900)
                             Text(
                                 text = "${totalYer.toInt()} ر.ي",
                                 fontSize = 16.sp,
@@ -394,7 +467,7 @@ fun CartScreen(
                 }
             }
 
-            // Customer Details Form
+            // Delivery & Recipient Details Form
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -407,12 +480,17 @@ fun CartScreen(
                             .padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            text = "بيانات التوصيل والاستلام",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Stone900
-                        )
+                        // Section 1: Customer Information
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Emerald800, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "بيانات الزبون للتوصيل والاستلام",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Stone900
+                            )
+                        }
 
                         OutlinedTextField(
                             value = customerName,
@@ -420,8 +498,8 @@ fun CartScreen(
                                 customerName = it
                                 validationError = null
                             },
-                            label = { Text("الاسم الكريم", fontSize = 11.sp) },
-                            placeholder = { Text("مثال: عبد الرحمن صالح", fontSize = 11.sp) },
+                            label = { Text("اسم الزبون *", fontSize = 11.sp) },
+                            placeholder = { Text("الاسم الكامل للزبون", fontSize = 11.sp) },
                             modifier = Modifier.fillMaxWidth().testTag("cart_input_name"),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp)
@@ -433,25 +511,227 @@ fun CartScreen(
                                 customerPhone = it
                                 validationError = null
                             },
-                            label = { Text("رقم الهاتف للتواصل والواتساب", fontSize = 11.sp) },
+                            label = { Text("رقم الهاتف للتواصل بالزبون *", fontSize = 11.sp) },
                             placeholder = { Text("مثال: 771234567", fontSize = 11.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             modifier = Modifier.fillMaxWidth().testTag("cart_input_phone"),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp)
                         )
 
-                        OutlinedTextField(
-                            value = deliveryAddress,
-                            onValueChange = {
-                                deliveryAddress = it
-                                validationError = null
-                            },
-                            label = { Text("عنوان التوصيل بصنعاء", fontSize = 11.sp) },
-                            placeholder = { Text("مثال: حدة - شارع بيروت - جوار المدرسة", fontSize = 11.sp) },
-                            modifier = Modifier.fillMaxWidth().testTag("cart_input_address"),
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp)
-                        )
+                        // Section 2: Recipient Information (Optional - e.g., Guard or Son)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Stone100)
+                                .border(1.dp, Stone200, RoundedCornerShape(12.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = "بيانات المستلم (اختياري - مثل: حارس العمارة أو الابن)",
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Emerald900
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = recipientName,
+                                        onValueChange = { recipientName = it },
+                                        label = { Text("اسم المستلم", fontSize = 10.sp) },
+                                        placeholder = { Text("مثل: الحارس / الابن", fontSize = 10.sp) },
+                                        modifier = Modifier.weight(1f).testTag("cart_input_recipient_name"),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    OutlinedTextField(
+                                        value = recipientPhone,
+                                        onValueChange = { recipientPhone = it },
+                                        label = { Text("رقم هاتف المستلم", fontSize = 10.sp) },
+                                        placeholder = { Text("77XXXXXXX", fontSize = 10.sp) },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                        modifier = Modifier.weight(1f).testTag("cart_input_recipient_phone"),
+                                        singleLine = true,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Section 3: Optional Written Address + Google Maps Live Location
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Emerald50.copy(alpha = 0.6f))
+                                .border(1.dp, Emerald300, RoundedCornerShape(12.dp))
+                                .padding(10.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = Emerald800, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "عنوان التوصيل أو الموقع المباشر (اختياري)",
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Emerald950
+                                        )
+                                    }
+                                }
+
+                                OutlinedTextField(
+                                    value = deliveryAddress,
+                                    onValueChange = { deliveryAddress = it },
+                                    label = { Text("عنوان التوصيل كتابياً (اختياري)", fontSize = 10.5.sp) },
+                                    placeholder = { Text("مثال: حدة - شارع بيروت - جوار المسجد", fontSize = 10.5.sp) },
+                                    modifier = Modifier.fillMaxWidth().testTag("cart_input_address"),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+
+                                // Quick chip to use selected header zone
+                                if (defaultLocation.isNotBlank() && deliveryAddress != defaultLocation) {
+                                    Text(
+                                        text = "+ تعبئة سريعة بالمنطقة المختارة ($defaultLocation)",
+                                        fontSize = 10.sp,
+                                        color = Emerald800,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(Emerald100)
+                                            .clickable { deliveryAddress = defaultLocation }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                // Google Maps Live Location Buttons
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            val hasPerm = ContextCompat.checkSelfPermission(
+                                                context,
+                                                Manifest.permission.ACCESS_COARSE_LOCATION
+                                            ) == PackageManager.PERMISSION_GRANTED
+                                            if (hasPerm) {
+                                                isFetchingLocation = true
+                                                locationStatusText = "جاري التقاط موقعك المباشر..."
+                                                fetchCurrentLocation(
+                                                    context = context,
+                                                    onSuccess = { lat, lng ->
+                                                        isFetchingLocation = false
+                                                        googleMapsLocationUrl = "https://maps.google.com/?q=$lat,$lng"
+                                                        locationStatusText = "✓ تم التقاط موقعك المباشر بنجاح"
+                                                    },
+                                                    onFailure = { errorMsg ->
+                                                        isFetchingLocation = false
+                                                        locationStatusText = errorMsg
+                                                    }
+                                                )
+                                            } else {
+                                                locationPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .weight(1.2f)
+                                            .height(42.dp)
+                                            .testTag("capture_gps_button"),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Emerald800)
+                                    ) {
+                                        if (isFetchingLocation) {
+                                            CircularProgressIndicator(
+                                                color = White,
+                                                modifier = Modifier.size(16.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.MyLocation,
+                                                contentDescription = null,
+                                                tint = Amber400,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "موقعي المباشر",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = White,
+                                            maxLines = 1
+                                        )
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            val mapsUri = if (googleMapsLocationUrl.isNotBlank()) {
+                                                Uri.parse(googleMapsLocationUrl)
+                                            } else {
+                                                Uri.parse("geo:15.3694,44.1910?q=صنعاء")
+                                            }
+                                            try {
+                                                context.startActivity(Intent(Intent.ACTION_VIEW, mapsUri))
+                                            } catch (_: ActivityNotFoundException) {
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com/?q=15.3694,44.1910"))
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(42.dp),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Map,
+                                            contentDescription = null,
+                                            tint = Emerald800,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "خرائط جوجل",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Emerald900,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+
+                                OutlinedTextField(
+                                    value = googleMapsLocationUrl,
+                                    onValueChange = { googleMapsLocationUrl = it },
+                                    label = { Text("رابط لوكيشن خرائط جوجل (اختياري)", fontSize = 10.sp) },
+                                    placeholder = { Text("يُملأ تلقائياً بالضغط على موقعي المباشر أو باللصق", fontSize = 10.sp) },
+                                    modifier = Modifier.fillMaxWidth().testTag("cart_input_maps_url"),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+
+                                if (locationStatusText != null) {
+                                    Text(
+                                        text = locationStatusText ?: "",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (googleMapsLocationUrl.isNotBlank()) Emerald800 else Stone700
+                                    )
+                                }
+                            }
+                        }
 
                         OutlinedTextField(
                             value = deliveryNotes,
@@ -465,23 +745,36 @@ fun CartScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Payment Methods
-                        Text(
-                            text = "طريقة الدفع والحسابات الإلكترونية:",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Stone900
-                        )
+                        // Section 4: Payment Methods (Cash on Delivery OR Select Wallet + Transaction Reference)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Receipt, contentDescription = null, tint = Emerald800, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "طريقة الدفع:",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Stone900
+                            )
+                        }
 
                         walletAccounts.filter { it.isEnabled }.forEach { wallet ->
                             val isSelected = wallet.id == selectedWalletId
+                            val isElectronicWallet = wallet.id != "w_cash" && wallet.accountNumber != "عند الاستلام"
+
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(if (isSelected) Emerald50 else Stone100)
-                                    .border(1.dp, if (isSelected) Emerald600 else Stone200, RoundedCornerShape(12.dp))
-                                    .clickable { selectedWalletId = wallet.id }
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) Emerald600 else Stone200,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable {
+                                        selectedWalletId = wallet.id
+                                        validationError = null
+                                    }
                                     .padding(horizontal = 10.dp, vertical = 8.dp)
                             ) {
                                 Row(
@@ -490,7 +783,10 @@ fun CartScreen(
                                 ) {
                                     RadioButton(
                                         selected = isSelected,
-                                        onClick = { selectedWalletId = wallet.id },
+                                        onClick = {
+                                            selectedWalletId = wallet.id
+                                            validationError = null
+                                        },
                                         colors = RadioButtonDefaults.colors(selectedColor = Emerald800)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -501,17 +797,23 @@ fun CartScreen(
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                             color = if (isSelected) Emerald950 else Stone900
                                         )
-                                        if (wallet.accountNumber != "عند الاستلام") {
+                                        if (isElectronicWallet) {
                                             Text(
                                                 text = "رقم الحساب/المحفظة: ${wallet.accountNumber}",
                                                 fontSize = 10.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Emerald900
                                             )
-                                        }
-                                        if (wallet.accountHolder.isNotBlank() && wallet.accountNumber != "عند الاستلام") {
+                                            if (wallet.accountHolder.isNotBlank()) {
+                                                Text(
+                                                    text = "باسم: ${wallet.accountHolder}",
+                                                    fontSize = 9.5.sp,
+                                                    color = Stone500
+                                                )
+                                            }
+                                        } else {
                                             Text(
-                                                text = "باسم: ${wallet.accountHolder}",
+                                                text = wallet.note.ifBlank { "ادفع نقداً عند استلام طلبك لباب منزلك" },
                                                 fontSize = 9.5.sp,
                                                 color = Stone500
                                             )
@@ -519,30 +821,69 @@ fun CartScreen(
                                     }
                                 }
 
-                                if (isSelected && wallet.accountNumber != "عند الاستلام") {
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                // If electronic wallet is selected, show account copy button + Transaction Reference Input
+                                if (isSelected && isElectronicWallet) {
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
+                                            .clip(RoundedCornerShape(10.dp))
                                             .background(White)
-                                            .border(1.dp, Emerald300, RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                            .border(1.dp, Emerald300, RoundedCornerShape(10.dp))
+                                            .padding(10.dp)
                                     ) {
-                                        Column {
-                                            Text(
-                                                text = "📌 تفاصيل التحويل: حول إلى ${wallet.name} برقم: ${wallet.accountNumber}",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Emerald900
-                                            )
-                                            if (wallet.note.isNotBlank()) {
-                                                Text(
-                                                    text = wallet.note,
-                                                    fontSize = 9.sp,
-                                                    color = Stone500
-                                                )
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "حول المبلغ (${totalYer.toInt()} ر.ي) إلى حساب:",
+                                                        fontSize = 10.sp,
+                                                        color = Stone700
+                                                    )
+                                                    Text(
+                                                        text = "${wallet.accountNumber} (${wallet.accountHolder})",
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        color = Emerald900
+                                                    )
+                                                }
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(Amber100)
+                                                        .border(1.dp, Amber400, RoundedCornerShape(8.dp))
+                                                        .clickable {
+                                                            clipboardManager.setText(AnnotatedString(wallet.accountNumber))
+                                                            Toast.makeText(context, "تم نسخ رقم الحساب: ${wallet.accountNumber}", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(Icons.Default.ContentCopy, contentDescription = "نسخ", tint = Amber950, modifier = Modifier.size(12.dp))
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text("نسخ الرقم", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Amber950)
+                                                    }
+                                                }
                                             }
+
+                                            OutlinedTextField(
+                                                value = paymentTransactionNumber,
+                                                onValueChange = {
+                                                    paymentTransactionNumber = it
+                                                    validationError = null
+                                                },
+                                                label = { Text("رقم العملية للدفع / رقم السند *", fontSize = 10.5.sp) },
+                                                placeholder = { Text("أدخل رقم العملية أو مرجع الحوالة بعد الدفع", fontSize = 10.5.sp) },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                modifier = Modifier.fillMaxWidth().testTag("cart_input_tx_number"),
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
                                         }
                                     }
                                 }
@@ -550,58 +891,82 @@ fun CartScreen(
                         }
 
                         if (validationError != null) {
-                            Text(
-                                text = validationError ?: "",
-                                fontSize = 11.sp,
-                                color = Red500,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Red500.copy(alpha = 0.1f))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = validationError ?: "",
+                                    fontSize = 11.sp,
+                                    color = Red500,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Submit via WhatsApp Button
+                        // Submit & Confirm Order via Store WhatsApp Button
                         Button(
                             onClick = {
                                 if (customerName.isBlank()) {
-                                    validationError = "يرجى كتابة الاسم الكريم للمتابعة"
+                                    validationError = "يرجى إدخال اسم الزبون للمتابعة"
                                     return@Button
                                 }
                                 if (customerPhone.isBlank()) {
-                                    validationError = "يرجى كتابة رقم الهاتف"
-                                    return@Button
-                                }
-                                if (deliveryAddress.isBlank()) {
-                                    validationError = "يرجى تحديد عنوان التوصيل"
+                                    validationError = "يرجى إدخال رقم الهاتف للتواصل بالزبون"
                                     return@Button
                                 }
 
                                 val chosenWallet = walletAccounts.find { it.id == selectedWalletId }
+                                val isElectronicWallet = chosenWallet != null &&
+                                    chosenWallet.id != "w_cash" &&
+                                    chosenWallet.accountNumber != "عند الاستلام"
+
+                                if (isElectronicWallet && paymentTransactionNumber.isBlank()) {
+                                    validationError = "يرجى إدخال رقم العملية للدفع عبر ${chosenWallet?.name}"
+                                    return@Button
+                                }
+
                                 val paymentName = chosenWallet?.name ?: "الدفع نقداً عند الاستلام"
-                                val walletDetails = if (chosenWallet != null && chosenWallet.accountNumber != "عند الاستلام") {
+                                val walletDetails = if (isElectronicWallet && chosenWallet != null) {
                                     "${chosenWallet.name} - رقم: ${chosenWallet.accountNumber} (باسم: ${chosenWallet.accountHolder})"
                                 } else null
 
                                 val order = onSubmitOrder(
                                     customerName,
                                     customerPhone,
+                                    recipientName,
+                                    recipientPhone,
                                     deliveryAddress,
+                                    googleMapsLocationUrl,
                                     deliveryNotes,
                                     paymentName,
-                                    walletDetails
+                                    walletDetails,
+                                    if (isElectronicWallet) paymentTransactionNumber else ""
                                 )
 
                                 if (order != null) {
-                                    // Open WhatsApp with formatted order message
                                     val message = order.generateWhatsAppMessage()
                                     val url = "https://wa.me/$storeWhatsApp?text=${Uri.encode(message)}"
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                    context.startActivity(intent)
+                                    try {
+                                        context.startActivity(intent)
+                                    } catch (_: ActivityNotFoundException) {
+                                        Toast.makeText(
+                                            context,
+                                            "تعذر فتح واتساب تلقائياً، تم تجهيز الفاتورة بنجاح.",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp)
+                                .height(52.dp)
                                 .testTag("submit_order_button"),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Emerald800)
@@ -614,7 +979,7 @@ fun CartScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "إرسال وتأكيد الطلب عبر واتساب (${totalYer.toInt()} ر.ي)",
+                                text = "إرسال وتأكيد الطلب بالواتساب (${totalYer.toInt()} ر.ي)",
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Black,
                                 color = White
@@ -628,5 +993,43 @@ fun CartScreen(
         item {
             Spacer(modifier = Modifier.height(80.dp))
         }
+    }
+}
+
+@SuppressLint("MissingPermission")
+private fun fetchCurrentLocation(
+    context: Context,
+    onSuccess: (Double, Double) -> Unit,
+    onFailure: (String) -> Unit
+) {
+    val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+    val cancellationTokenSource = CancellationTokenSource()
+
+    try {
+        fusedClient.getCurrentLocation(
+            Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+            cancellationTokenSource.token
+        ).addOnSuccessListener { location ->
+            if (location != null) {
+                onSuccess(location.latitude, location.longitude)
+            } else {
+                // Fallback to lastLocation
+                fusedClient.lastLocation
+                    .addOnSuccessListener { last ->
+                        if (last != null) {
+                            onSuccess(last.latitude, last.longitude)
+                        } else {
+                            onFailure("تأكد من تفعيل خدمة الموقع (GPS) على الهاتف أو افتح خرائط جوجل لإرفاق الموقع.")
+                        }
+                    }
+                    .addOnFailureListener {
+                        onFailure("تعذر تحديد الموقع تلقائياً. يمكنك فتح خرائط جوجل أو كتابة العنوان.")
+                    }
+            }
+        }.addOnFailureListener {
+            onFailure("تعذر التقاط الموقع المباشر. تأكد من تشغيل خدمة الموقع (GPS).")
+        }
+    } catch (_: SecurityException) {
+        onFailure("يرجى السماح بصلاحية الوصول للموقع.")
     }
 }

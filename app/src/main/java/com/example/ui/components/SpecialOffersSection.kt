@@ -9,15 +9,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,19 +30,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.data.model.Currency
 import com.example.data.model.Product
 import com.example.ui.theme.Amber100
-import com.example.ui.theme.Amber200
 import com.example.ui.theme.Amber300
 import com.example.ui.theme.Amber400
 import com.example.ui.theme.Amber500
 import com.example.ui.theme.Amber950
+import com.example.ui.theme.Emerald800
+import com.example.ui.theme.Emerald900
+import com.example.ui.theme.Red500
+import com.example.ui.theme.Stone100
 import com.example.ui.theme.Stone400
 import com.example.ui.theme.Stone500
 import com.example.ui.theme.Stone900
@@ -51,7 +62,6 @@ import com.example.ui.theme.White
 fun SpecialOffersSection(
     slotProducts: List<Product>,
     currency: Currency,
-    onManageSlotsClick: () -> Unit,
     onProductClick: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
     modifier: Modifier = Modifier
@@ -78,7 +88,7 @@ fun SpecialOffersSection(
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Header Row
+                // Header Row (Customer-facing only; managed exclusively from Account -> Admin Panel)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -106,7 +116,7 @@ fun SpecialOffersSection(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = "العروض الخاصة الحصرية",
-                                    fontSize = 13.sp,
+                                    fontSize = 13.5.sp,
                                     fontWeight = FontWeight.Black,
                                     color = Stone900
                                 )
@@ -118,7 +128,7 @@ fun SpecialOffersSection(
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = "${slotProducts.size} من 4 خانات",
+                                        text = if (slotProducts.isNotEmpty()) "${slotProducts.size} عروض" else "عروض اليوم",
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Black,
                                         color = Stone950
@@ -133,74 +143,39 @@ fun SpecialOffersSection(
                             )
                         }
                     }
-
-                    // Manage Slots Button
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Amber100)
-                            .border(1.dp, Amber300, RoundedCornerShape(10.dp))
-                            .clickable { onManageSlotsClick() }
-                            .padding(horizontal = 8.dp, vertical = 5.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "تحكم الخانات",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Amber950
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = null,
-                                tint = Amber950,
-                                modifier = Modifier.size(11.dp)
-                            )
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 if (slotProducts.isEmpty()) {
-                    // Empty state as in the provided HTML mockup
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(White.copy(alpha = 0.85f))
                             .border(1.dp, Amber300, RoundedCornerShape(16.dp))
-                            .padding(vertical = 20.dp, horizontal = 12.dp),
+                            .padding(vertical = 18.dp, horizontal = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "لا توجد عروض مفعلة حالياً في الخانات",
+                                text = "ترقبوا أقوى العروض الخاصة الطازجة قريباً",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Amber950,
                                 textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Amber400)
-                                    .clickable { onManageSlotsClick() }
-                                    .padding(horizontal = 14.dp, vertical = 7.dp)
-                            ) {
-                                Text(
-                                    text = "فتح لوحة تحكم المدير لإدراج أصناف العروض",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = Stone950
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "تتوفر العروض الحصرية فور إضافتها من إدارة المتجر",
+                                fontSize = 10.sp,
+                                color = Stone500,
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 } else {
-                    // Horizontal scroll of active slot products
+                    // Horizontal scroll of active special offer products
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -216,26 +191,100 @@ fun SpecialOffersSection(
                                 colors = CardDefaults.cardColors(containerColor = White),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                             ) {
-                                Column(modifier = Modifier.padding(10.dp)) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(100.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Stone100)
+                                    ) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data(product.imageUrl)
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = product.name,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+
+                                        product.discountPercent?.let { discount ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopStart)
+                                                    .padding(6.dp)
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(Red500)
+                                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "خصم $discount%",
+                                                    fontSize = 8.5.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = White
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
                                     Text(
                                         text = product.name,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Stone900,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${product.origin} • /${product.unit}",
+                                        fontSize = 9.sp,
+                                        color = Stone400,
                                         maxLines = 1
                                     )
-                                    Text(
-                                        text = product.origin,
-                                        fontSize = 9.sp,
-                                        color = Stone400
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = product.getFormattedPrice(currency),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = Amber950
-                                    )
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = product.getFormattedPrice(currency),
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Black,
+                                                color = Emerald900
+                                            )
+                                            product.getFormattedOriginalPrice(currency)?.let { orig ->
+                                                Text(
+                                                    text = orig,
+                                                    fontSize = 9.sp,
+                                                    color = Stone400,
+                                                    style = TextStyle(textDecoration = TextDecoration.LineThrough)
+                                                )
+                                            }
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(Emerald800)
+                                                .clickable { onAddToCart(product) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "إضافة للسلة",
+                                                tint = White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

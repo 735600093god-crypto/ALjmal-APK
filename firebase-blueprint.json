@@ -1,0 +1,332 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private customer or store user profile scoped strictly to authenticated user UID.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "User Google email address."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer"],
+          "description": "Client-assignable base role (strictly customer; admin privileges live only in /admins)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["userId", "displayName", "email", "role", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Authorized store administrator entry managed exclusively by the bootstrapped store owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID granted admin privileges."
+        },
+        "email": {
+          "type": "string",
+          "description": "Administrator email address."
+        },
+        "grantedBy": {
+          "type": "string",
+          "description": "UID of the bootstrapped admin who granted access."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["uid", "email", "grantedBy", "createdAt", "updatedAt"]
+    },
+    "StoreProduct": {
+      "title": "StoreProduct",
+      "description": "Cloud-synced store catalog product published by the store admin and observed in real time by all devices.",
+      "type": "object",
+      "properties": {
+        "storeId": {
+          "type": "string",
+          "enum": ["aljamal_main"],
+          "description": "Store tenant identifier for query alignment."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the admin who created or last updated the product."
+        },
+        "name": {
+          "type": "string",
+          "description": "Product display name."
+        },
+        "categoryId": {
+          "type": "string",
+          "enum": ["local_fruits", "imported_fruits", "vegetables", "premium_dates", "dried_fruits"],
+          "description": "One of the five Al-Jamal Store categories."
+        },
+        "priceYer": {
+          "type": "number",
+          "description": "Current selling price in Yemeni Rial."
+        },
+        "originalPriceYer": {
+          "type": "number",
+          "description": "Optional pre-discount price in Yemeni Rial."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Selling unit (e.g., كجم، صحن)."
+        },
+        "origin": {
+          "type": "string",
+          "description": "Product farm or country of origin."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating from 0.0 to 5.0."
+        },
+        "badge": {
+          "type": "string",
+          "description": "Optional badge label."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "HTTPS URL or compressed data URI for product photo."
+        },
+        "discountPercent": {
+          "type": "integer",
+          "description": "Optional discount percentage."
+        },
+        "description": {
+          "type": "string",
+          "description": "Product description."
+        },
+        "inStock": {
+          "type": "boolean",
+          "description": "Availability flag."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["storeId", "ownerId", "name", "categoryId", "priceYer", "unit", "origin", "rating", "imageUrl", "description", "inStock", "createdAt", "updatedAt"]
+    },
+    "StoreCategory": {
+      "title": "StoreCategory",
+      "description": "Cloud-synced store category title, subtitle, and custom image.",
+      "type": "object",
+      "properties": {
+        "storeId": {
+          "type": "string",
+          "enum": ["aljamal_main"]
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "customTitle": {
+          "type": "string"
+        },
+        "customSubtitle": {
+          "type": "string"
+        },
+        "customImageUrl": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["storeId", "ownerId", "customTitle", "customSubtitle", "createdAt", "updatedAt"]
+    },
+    "StoreWallet": {
+      "title": "StoreWallet",
+      "description": "Cloud-synced payment wallet account configured by the admin.",
+      "type": "object",
+      "properties": {
+        "storeId": {
+          "type": "string",
+          "enum": ["aljamal_main"]
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "accountNumber": {
+          "type": "string"
+        },
+        "accountHolder": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "isEnabled": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["storeId", "ownerId", "name", "accountNumber", "accountHolder", "note", "isEnabled", "createdAt", "updatedAt"]
+    },
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Global synced store configuration including featured special offer IDs and sync metadata.",
+      "type": "object",
+      "properties": {
+        "storeId": {
+          "type": "string",
+          "enum": ["aljamal_main"]
+        },
+        "ownerId": {
+          "type": "string"
+        },
+        "offerSlotProductIds": {
+          "type": "array",
+          "description": "Bounded list of up to 4 product IDs featured in Special Offers."
+        },
+        "syncVersion": {
+          "type": "integer",
+          "description": "Monotonically incremented sync publish version."
+        },
+        "lastSyncedByName": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["storeId", "ownerId", "offerSlotProductIds", "syncVersion", "lastSyncedByName", "createdAt", "updatedAt"]
+    },
+    "AdminSecurityConfig": {
+      "title": "AdminSecurityConfig",
+      "description": "Hashed admin password verifier stored securely for authorized admins only.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string"
+        },
+        "pinHash": {
+          "type": "string",
+          "description": "SHA-256 hex digest of salted admin password."
+        },
+        "pinSalt": {
+          "type": "string",
+          "description": "Cryptographic salt hex string."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "pinHash", "pinSalt", "createdAt", "updatedAt"]
+    },
+    "SecurityLog": {
+      "title": "SecurityLog",
+      "description": "Append-only anti-intrusion security audit event.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "eventType": {
+          "type": "string",
+          "enum": ["FAILED_PIN", "FIREWALL_LOCKOUT", "ADMIN_UNLOCK", "CLOUD_SYNC", "PIN_CHANGED"]
+        },
+        "details": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "eventType", "details", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Owner-isolated user profile document."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Admin UIDs authorized to publish store changes."
+    },
+    "/store_products/{productId}": {
+      "schema": { "$ref": "#/entities/StoreProduct" },
+      "description": "Synced store product catalog."
+    },
+    "/store_categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/StoreCategory" },
+      "description": "Synced store category customizations."
+    },
+    "/store_wallets/{walletId}": {
+      "schema": { "$ref": "#/entities/StoreWallet" },
+      "description": "Synced electronic wallet accounts."
+    },
+    "/store_config/{configId}": {
+      "schema": { "$ref": "#/entities/StoreConfig" },
+      "description": "Global store offers and sync version metadata (doc ID: main)."
+    },
+    "/admin_security/{docId}": {
+      "schema": { "$ref": "#/entities/AdminSecurityConfig" },
+      "description": "Restricted salted SHA-256 admin password verifier (doc ID: pin_config)."
+    },
+    "/security_logs/{logId}": {
+      "schema": { "$ref": "#/entities/SecurityLog" },
+      "description": "Append-only security firewall audit log."
+    }
+  }
+}

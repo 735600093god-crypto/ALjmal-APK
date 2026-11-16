@@ -1,0 +1,326 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all reads and writes by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Core Security Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // Verified email check prevents unverified email spoofing
+    function isBootstrappedAdmin() {
+      return isSignedIn() &&
+             request.auth.token.email_verified == true &&
+             request.auth.token.email == 'akrmshaker8@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() ||
+             (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidImageUrl(url) {
+      return url is string &&
+             url.size() >= 1 &&
+             url.size() <= 750000 &&
+             (url.matches('^https://.*') || url.matches('^data:image/(jpeg|jpg|png|webp);base64,.*'));
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             data.role == 'customer' &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAdminRecord(data) {
+      return isValidId(data.uid) &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             data.grantedBy is string && data.grantedBy.size() >= 1 && data.grantedBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStoreProduct(data) {
+      return data.storeId == 'aljamal_main' &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             data.categoryId in ['local_fruits', 'imported_fruits', 'vegetables', 'premium_dates', 'dried_fruits'] &&
+             data.priceYer is number && data.priceYer > 0 && data.priceYer <= 10000000 &&
+             (!('originalPriceYer' in data) || (data.originalPriceYer is number && data.originalPriceYer > 0 && data.originalPriceYer <= 10000000)) &&
+             data.unit is string && data.unit.size() >= 1 && data.unit.size() <= 50 &&
+             data.origin is string && data.origin.size() >= 1 && data.origin.size() <= 80 &&
+             data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+             (!('badge' in data) || (data.badge is string && data.badge.size() <= 60)) &&
+             isValidImageUrl(data.imageUrl) &&
+             (!('discountPercent' in data) || (data.discountPercent is int && data.discountPercent >= 0 && data.discountPercent <= 99)) &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.inStock is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStoreCategory(data) {
+      return data.storeId == 'aljamal_main' &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.customTitle is string && data.customTitle.size() >= 1 && data.customTitle.size() <= 80 &&
+             data.customSubtitle is string && data.customSubtitle.size() <= 160 &&
+             (!('customImageUrl' in data) || isValidImageUrl(data.customImageUrl)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStoreWallet(data) {
+      return data.storeId == 'aljamal_main' &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.accountNumber is string && data.accountNumber.size() >= 1 && data.accountNumber.size() <= 60 &&
+             data.accountHolder is string && data.accountHolder.size() <= 80 &&
+             data.note is string && data.note.size() <= 200 &&
+             data.isEnabled is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStoreConfig(data) {
+      return data.storeId == 'aljamal_main' &&
+             data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.offerSlotProductIds is list &&
+             data.offerSlotProductIds.size() <= 4 &&
+             (data.offerSlotProductIds.size() == 0 || isValidId(data.offerSlotProductIds[0])) &&
+             data.syncVersion is int && data.syncVersion >= 0 &&
+             data.lastSyncedByName is string && data.lastSyncedByName.size() >= 1 && data.lastSyncedByName.size() <= 80 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAdminSecurityConfig(data) {
+      return data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.pinHash is string && data.pinHash.size() == 64 && data.pinHash.matches('^[a-fA-F0-9]{64}$') &&
+             data.pinSalt is string && data.pinSalt.size() >= 16 && data.pinSalt.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSecurityLog(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.eventType in ['FAILED_PIN', 'FIREWALL_LOCKOUT', 'ADMIN_UNLOCK', 'CLOUD_SYNC', 'PIN_CHANGED'] &&
+             data.details is string && data.details.size() >= 1 && data.details.size() <= 250 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    // --- Collection Rules ---
+
+    // 1. User Profiles (Strict PII Isolation & Self-Assignment Prevention)
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'email', 'role', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'role', 'createdAt', 'updatedAt']) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().role == 'customer' &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().role == existing().role &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'updatedAt']);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+    }
+
+    // 2. Trusted Admin Registry (Bootstrapped Owner Only)
+    match /admins/{adminUid} {
+      allow get: if isSignedIn() && isValidId(adminUid) && (request.auth.uid == adminUid || isBootstrappedAdmin());
+      allow list: if false;
+
+      allow create: if isBootstrappedAdmin() &&
+                       isValidId(adminUid) &&
+                       incoming().keys().hasAll(['uid', 'email', 'grantedBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['uid', 'email', 'grantedBy', 'createdAt', 'updatedAt']) &&
+                       incoming().uid == adminUid &&
+                       incoming().grantedBy == request.auth.uid &&
+                       isValidAdminRecord(incoming());
+
+      allow update: if isBootstrappedAdmin() &&
+                       isValidId(adminUid) &&
+                       isValidAdminRecord(incoming()) &&
+                       incoming().uid == existing().uid &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['email', 'grantedBy', 'updatedAt']);
+
+      allow delete: if isBootstrappedAdmin() && isValidId(adminUid);
+    }
+
+    // 3. Synced Store Products
+    match /store_products/{productId} {
+      allow get: if isSignedIn() && isValidId(productId) && existing().storeId == 'aljamal_main';
+      allow list: if isSignedIn() && resource.data.storeId == 'aljamal_main';
+
+      allow create: if isSignedIn() &&
+                       isValidId(productId) &&
+                       isValidStoreProduct(incoming()) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll(['storeId', 'ownerId', 'name', 'categoryId', 'priceYer', 'unit', 'origin', 'rating', 'imageUrl', 'description', 'inStock', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['storeId', 'ownerId', 'name', 'categoryId', 'priceYer', 'originalPriceYer', 'unit', 'origin', 'rating', 'badge', 'imageUrl', 'discountPercent', 'description', 'inStock', 'createdAt', 'updatedAt']) &&
+                       isAdmin();
+
+      allow update: if isSignedIn() &&
+                       isValidId(productId) &&
+                       isValidStoreProduct(incoming()) &&
+                       incoming().storeId == existing().storeId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ownerId', 'name', 'categoryId', 'priceYer', 'originalPriceYer', 'unit', 'origin', 'rating', 'badge', 'imageUrl', 'discountPercent', 'description', 'inStock', 'updatedAt']) &&
+                       isAdmin();
+
+      allow delete: if isSignedIn() && isValidId(productId) && isAdmin();
+    }
+
+    // 4. Synced Store Categories
+    match /store_categories/{categoryId} {
+      allow get: if isSignedIn() && isValidId(categoryId) && existing().storeId == 'aljamal_main';
+      allow list: if isSignedIn() && resource.data.storeId == 'aljamal_main';
+
+      allow create: if isSignedIn() &&
+                       isValidId(categoryId) &&
+                       isValidStoreCategory(incoming()) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll(['storeId', 'ownerId', 'customTitle', 'customSubtitle', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['storeId', 'ownerId', 'customTitle', 'customSubtitle', 'customImageUrl', 'createdAt', 'updatedAt']) &&
+                       isAdmin();
+
+      allow update: if isSignedIn() &&
+                       isValidId(categoryId) &&
+                       isValidStoreCategory(incoming()) &&
+                       incoming().storeId == existing().storeId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ownerId', 'customTitle', 'customSubtitle', 'customImageUrl', 'updatedAt']) &&
+                       isAdmin();
+
+      allow delete: if isSignedIn() && isValidId(categoryId) && isAdmin();
+    }
+
+    // 5. Synced Store Wallet Accounts
+    match /store_wallets/{walletId} {
+      allow get: if isSignedIn() && isValidId(walletId) && existing().storeId == 'aljamal_main';
+      allow list: if isSignedIn() && resource.data.storeId == 'aljamal_main';
+
+      allow create: if isSignedIn() &&
+                       isValidId(walletId) &&
+                       isValidStoreWallet(incoming()) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll(['storeId', 'ownerId', 'name', 'accountNumber', 'accountHolder', 'note', 'isEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['storeId', 'ownerId', 'name', 'accountNumber', 'accountHolder', 'note', 'isEnabled', 'createdAt', 'updatedAt']) &&
+                       isAdmin();
+
+      allow update: if isSignedIn() &&
+                       isValidId(walletId) &&
+                       isValidStoreWallet(incoming()) &&
+                       incoming().storeId == existing().storeId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ownerId', 'name', 'accountNumber', 'accountHolder', 'note', 'isEnabled', 'updatedAt']) &&
+                       isAdmin();
+
+      allow delete: if isSignedIn() && isValidId(walletId) && isAdmin();
+    }
+
+    // 6. Global Store Config (Special Offers & Sync Metadata)
+    match /store_config/{configId} {
+      allow get: if isSignedIn() && isValidId(configId) && existing().storeId == 'aljamal_main';
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       configId == 'main' &&
+                       isValidStoreConfig(incoming()) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll(['storeId', 'ownerId', 'offerSlotProductIds', 'syncVersion', 'lastSyncedByName', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['storeId', 'ownerId', 'offerSlotProductIds', 'syncVersion', 'lastSyncedByName', 'createdAt', 'updatedAt']) &&
+                       isAdmin();
+
+      allow update: if isSignedIn() &&
+                       configId == 'main' &&
+                       isValidStoreConfig(incoming()) &&
+                       incoming().storeId == existing().storeId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ownerId', 'offerSlotProductIds', 'syncVersion', 'lastSyncedByName', 'updatedAt']) &&
+                       isAdmin();
+
+      allow delete: if false;
+    }
+
+    // 7. Admin Security Config (Salted SHA-256 PIN Hash - Strictly Admins Only)
+    match /admin_security/{docId} {
+      allow get: if isSignedIn() && docId == 'pin_config' && isAdmin();
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       docId == 'pin_config' &&
+                       isValidAdminSecurityConfig(incoming()) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll(['ownerId', 'pinHash', 'pinSalt', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['ownerId', 'pinHash', 'pinSalt', 'createdAt', 'updatedAt']) &&
+                       isAdmin();
+
+      allow update: if isSignedIn() &&
+                       docId == 'pin_config' &&
+                       isValidAdminSecurityConfig(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['ownerId', 'pinHash', 'pinSalt', 'updatedAt']) &&
+                       isAdmin();
+
+      allow delete: if false;
+    }
+
+    // 8. Append-Only Security Firewall Audit Logs
+    match /security_logs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(logId) &&
+                       isValidSecurityLog(incoming()) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'eventType', 'details', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'eventType', 'details', 'createdAt']);
+
+      allow update, delete: if false;
+    }
+  }
+}
