@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -88,6 +87,7 @@ fun StoreHeader(
                     // Delivery Location Button
                     Row(
                         modifier = Modifier
+                            .weight(1f, fill = false)
                             .clip(RoundedCornerShape(8.dp))
                             .clickable { onLocationClick() }
                             .padding(horizontal = 4.dp, vertical = 2.dp),
@@ -113,7 +113,8 @@ fun StoreHeader(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Icon(
@@ -124,6 +125,8 @@ fun StoreHeader(
                         )
                     }
 
+                    Spacer(modifier = Modifier.width(6.dp))
+
                     // Currency Switcher
                     Box(
                         modifier = Modifier
@@ -131,6 +134,7 @@ fun StoreHeader(
                             .background(Emerald800.copy(alpha = 0.85f))
                             .border(1.dp, Emerald700, RoundedCornerShape(6.dp))
                             .clickable { onCurrencyClick() }
+                            .testTag("currency_switcher_button")
                             .padding(horizontal = 9.dp, vertical = 4.dp)
                     ) {
                         Text(

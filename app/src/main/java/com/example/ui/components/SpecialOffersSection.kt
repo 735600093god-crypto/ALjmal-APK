@@ -88,38 +88,38 @@ fun SpecialOffersSection(
                 .padding(14.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Header Row (Customer-facing only; managed exclusively from Account -> Admin Panel)
+                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Start,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Amber500),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                tint = Stone950,
-                                modifier = Modifier.size(18.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Amber500),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = Stone950,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "العروض الخاصة الحصرية",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Stone900
                             )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "العروض الخاصة الحصرية",
-                                    fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = Stone900
-                                )
+                            if (slotProducts.isNotEmpty()) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Box(
                                     modifier = Modifier
@@ -128,20 +128,20 @@ fun SpecialOffersSection(
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = if (slotProducts.isNotEmpty()) "${slotProducts.size} عروض" else "عروض اليوم",
+                                        text = "${slotProducts.size} عروض",
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Black,
                                         color = Stone950
                                     )
                                 }
                             }
-
-                            Text(
-                                text = "أقوى عروض التوفير الطازجة المختارة اليوم",
-                                fontSize = 10.sp,
-                                color = Stone500
-                            )
                         }
+
+                        Text(
+                            text = "أقوى عروض التوفير الطازجة المختارة اليوم",
+                            fontSize = 10.sp,
+                            color = Stone500
+                        )
                     }
                 }
 
@@ -159,7 +159,7 @@ fun SpecialOffersSection(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "ترقبوا أقوى العروض الخاصة الطازجة قريباً",
+                                text = "لا توجد عروض حصرية مفعلة حالياً",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Amber950,
@@ -167,8 +167,8 @@ fun SpecialOffersSection(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "تتوفر العروض الحصرية فور إضافتها من إدارة المتجر",
-                                fontSize = 10.sp,
+                                text = "ترقبوا أقوى العروض اليومية الطازجة قريباً",
+                                fontSize = 10.5.sp,
                                 color = Stone500,
                                 textAlign = TextAlign.Center
                             )

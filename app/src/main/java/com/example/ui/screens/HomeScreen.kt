@@ -281,7 +281,7 @@ fun HomeScreen(
             )
         }
 
-        // 3. Special Offers Section (managed via Account -> Admin Panel)
+        // 3. Special Offers Section
         item {
             SpecialOffersSection(
                 slotProducts = slotProducts,
