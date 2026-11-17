@@ -13,7 +13,6 @@ import com.example.data.model.WalletAccount
 import com.example.data.remote.CloudStoreRepository
 import com.example.data.repository.StoreRepository
 import com.example.data.security.AdminSecurityManager
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,15 +51,12 @@ data class StoreUiState(
     val walletAccounts: List<WalletAccount> = emptyList(),
     val categoryCustomizations: Map<String, CategoryCustomization> = emptyMap(),
     val recentSubmittedOrder: OrderSubmission? = null,
-    val showOrderSuccessDialog: Boolean = false,
-    val signedInUserEmail: String = "",
-    val signedInUserName: String = ""
+    val showOrderSuccessDialog: Boolean = false
 )
 
 class StoreViewModel(
     val repository: StoreRepository = StoreRepository(),
-    private val cloudRepository: CloudStoreRepository? = null,
-    private val currentUser: FirebaseUser? = null
+    private val cloudRepository: CloudStoreRepository? = null
 ) : ViewModel() {
 
     private val _currentTab = MutableStateFlow(AppTab.HOME)
@@ -72,16 +68,12 @@ class StoreViewModel(
     private val _showOrderSuccessDialog = MutableStateFlow(false)
 
     init {
-        if (cloudRepository != null && currentUser != null) {
-            initializeCloudSync(cloudRepository, currentUser)
+        if (cloudRepository != null) {
+            initializeCloudSync(cloudRepository)
         }
     }
 
-    private fun initializeCloudSync(cloud: CloudStoreRepository, user: FirebaseUser) {
-        viewModelScope.launch {
-            cloud.ensureUserProfile(user)
-        }
-
+    private fun initializeCloudSync(cloud: CloudStoreRepository) {
         // Real-time Products listener (synced from Web Admin)
         viewModelScope.launch {
             cloud.observeProducts()
@@ -225,9 +217,7 @@ class StoreViewModel(
             walletAccounts = wallets,
             categoryCustomizations = cats,
             recentSubmittedOrder = recentOrder,
-            showOrderSuccessDialog = showOrderDialog,
-            signedInUserEmail = currentUser?.email ?: "",
-            signedInUserName = currentUser?.displayName ?: ""
+            showOrderSuccessDialog = showOrderDialog
         )
     }.stateIn(
         viewModelScope,

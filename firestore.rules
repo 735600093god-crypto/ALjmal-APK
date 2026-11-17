@@ -184,10 +184,10 @@ service cloud.firestore {
       allow delete: if isBootstrappedAdmin() && isValidId(adminUid);
     }
 
-    // 3. Synced Store Products
+    // 3. Synced Store Products (Public read-only storefront catalog; Admin-only writes)
     match /store_products/{productId} {
-      allow get: if isSignedIn() && isValidId(productId) && existing().storeId == 'aljamal_main';
-      allow list: if isSignedIn() && resource.data.storeId == 'aljamal_main';
+      allow get: if isValidId(productId) && existing().storeId == 'aljamal_main';
+      allow list: if resource.data.storeId == 'aljamal_main';
 
       allow create: if isSignedIn() &&
                        isValidId(productId) &&
@@ -209,10 +209,10 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(productId) && isAdmin();
     }
 
-    // 4. Synced Store Categories
+    // 4. Synced Store Categories (Public read-only storefront catalog; Admin-only writes)
     match /store_categories/{categoryId} {
-      allow get: if isSignedIn() && isValidId(categoryId) && existing().storeId == 'aljamal_main';
-      allow list: if isSignedIn() && resource.data.storeId == 'aljamal_main';
+      allow get: if isValidId(categoryId) && existing().storeId == 'aljamal_main';
+      allow list: if resource.data.storeId == 'aljamal_main';
 
       allow create: if isSignedIn() &&
                        isValidId(categoryId) &&
@@ -234,10 +234,10 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(categoryId) && isAdmin();
     }
 
-    // 5. Synced Store Wallet Accounts
+    // 5. Synced Store Wallet Accounts (Public read-only checkout wallets; Admin-only writes)
     match /store_wallets/{walletId} {
-      allow get: if isSignedIn() && isValidId(walletId) && existing().storeId == 'aljamal_main';
-      allow list: if isSignedIn() && resource.data.storeId == 'aljamal_main';
+      allow get: if isValidId(walletId) && existing().storeId == 'aljamal_main';
+      allow list: if resource.data.storeId == 'aljamal_main';
 
       allow create: if isSignedIn() &&
                        isValidId(walletId) &&
@@ -259,9 +259,9 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(walletId) && isAdmin();
     }
 
-    // 6. Global Store Config (Special Offers & Sync Metadata)
+    // 6. Global Store Config (Public read-only Special Offers & Sync Metadata; Admin-only writes)
     match /store_config/{configId} {
-      allow get: if isSignedIn() && isValidId(configId) && existing().storeId == 'aljamal_main';
+      allow get: if isValidId(configId) && existing().storeId == 'aljamal_main';
       allow list: if false;
 
       allow create: if isSignedIn() &&

@@ -66,11 +66,22 @@ beforeEach(async () => {
   }
 });
 
-test("Unauthenticated user: denied reading or listing store_products and users", async () => {
+test("Unauthenticated shopper: can list filtered public catalog, denied writes and private collections", async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await ctx.firestore().collection("store_products").doc("p1").set(validProductPayload(ADMIN_UID));
+  });
+
   const unauthDb = testEnv.unauthenticatedContext().firestore();
-  await assertFails(unauthDb.collection("store_products").where("storeId", "==", "aljamal_main").get());
-  await assertFails(unauthDb.collection("store_config").doc("main").get());
+  // StoreId-filtered storefront read is allowed for shoppers without login
+  await assertSucceeds(unauthDb.collection("store_products").where("storeId", "==", "aljamal_main").get());
+
+  // Unfiltered list still denied
+  await assertFails(unauthDb.collection("store_products").get());
+  // Writes and private collections strictly denied
+  await assertFails(unauthDb.collection("store_products").doc("p2").set(validProductPayload(ALICE_UID)));
   await assertFails(unauthDb.collection("users").doc(ALICE_UID).get());
+  await assertFails(unauthDb.collection("admin_security").doc("pin_config").get());
+  await assertFails(unauthDb.collection("security_logs").where("userId", "==", ALICE_UID).get());
 });
 
 test("Email spoofing attack: unverified admin email cannot write store_products", async () => {

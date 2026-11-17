@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -71,9 +70,6 @@ fun AccountScreen(
     storePhone: String,
     storeWhatsApp: String,
     storeLocation: String,
-    signedInUserEmail: String,
-    signedInUserName: String,
-    onSignOutClick: () -> Unit,
     onProductClick: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
     onDecrement: (Product) -> Unit,
@@ -144,39 +140,12 @@ fun AccountScreen(
                                 color = Stone500,
                                 fontWeight = FontWeight.Medium
                             )
-                            if (signedInUserEmail.isNotBlank()) {
-                                val displayLabel = if (signedInUserName.isNotBlank()) {
-                                    "$signedInUserName ($signedInUserEmail)"
-                                } else {
-                                    signedInUserEmail
-                                }
-                                Text(
-                                    text = "الحساب المتصل: $displayLabel",
-                                    fontSize = 9.5.sp,
-                                    color = Emerald800,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Stone100)
-                                .clickable { onSignOutClick() }
-                                .testTag("sign_out_button")
-                                .padding(horizontal = 10.dp, vertical = 10.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = "تسجيل الخروج",
-                                    tint = Stone700,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("خروج", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Stone700)
-                            }
+                            Text(
+                                text = "متصل ومتزامن تلقائياً مع متجر الجمل ✓",
+                                fontSize = 9.5.sp,
+                                color = Emerald800,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
 

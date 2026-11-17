@@ -54,140 +54,128 @@ class CloudStoreRepository(
     private var pinConfigCreatedAt: Timestamp? = null
     private var currentSyncVersion: Long = 0L
 
-    fun observeProducts(): Flow<List<Product>> = flow {
-        requireUserId()
+    fun observeProducts(): Flow<List<Product>> {
         val path = COLLECTION_PRODUCTS
-        emitAll(
-            db.collection(path)
-                .whereEqualTo("storeId", StoreProductDoc.STORE_ID_MAIN)
-                .snapshots()
-                .map { snapshot ->
-                    snapshot.documents.mapNotNull { doc ->
-                        val item = doc.toObject(
-                            StoreProductDoc::class.java,
-                            DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
-                        )
-                        if (item != null) {
-                            item.createdAt?.let { productCreatedAt[item.id] = it }
-                            item.toDomainProduct()
-                        } else null
-                    }
+        return db.collection(path)
+            .whereEqualTo("storeId", StoreProductDoc.STORE_ID_MAIN)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    val item = doc.toObject(
+                        StoreProductDoc::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    )
+                    if (item != null) {
+                        item.createdAt?.let { productCreatedAt[item.id] = it }
+                        item.toDomainProduct()
+                    } else null
                 }
-                .catch { error ->
-                    val firestoreError = generateSequence(error) { it.cause }
-                        .filterIsInstance<FirebaseFirestoreException>()
-                        .firstOrNull()
-                    if (firestoreError == null && error is CancellationException) throw error
-                    val toLog = firestoreError ?: (error as? Exception)
-                    if (toLog != null && auth.currentUser != null) {
-                        handleFirestoreError(toLog, OperationType.LIST, path)
-                    }
-                    throw error
+            }
+            .catch { error ->
+                val firestoreError = generateSequence(error) { it.cause }
+                    .filterIsInstance<FirebaseFirestoreException>()
+                    .firstOrNull()
+                if (firestoreError == null && error is CancellationException) throw error
+                val toLog = firestoreError ?: (error as? Exception)
+                if (toLog != null && auth.currentUser != null) {
+                    handleFirestoreError(toLog, OperationType.LIST, path)
                 }
-        )
+                throw error
+            }
     }
 
-    fun observeCategories(): Flow<Map<String, CategoryCustomization>> = flow {
-        requireUserId()
+    fun observeCategories(): Flow<Map<String, CategoryCustomization>> {
         val path = COLLECTION_CATEGORIES
-        emitAll(
-            db.collection(path)
-                .whereEqualTo("storeId", StoreProductDoc.STORE_ID_MAIN)
-                .snapshots()
-                .map { snapshot ->
-                    snapshot.documents.mapNotNull { doc ->
-                        val item = doc.toObject(
-                            StoreCategoryDoc::class.java,
-                            DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
-                        )
-                        if (item != null) {
-                            item.createdAt?.let { categoryCreatedAt[item.id] = it }
-                            item.id to item.toDomainCategory()
-                        } else null
-                    }.toMap()
+        return db.collection(path)
+            .whereEqualTo("storeId", StoreProductDoc.STORE_ID_MAIN)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    val item = doc.toObject(
+                        StoreCategoryDoc::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    )
+                    if (item != null) {
+                        item.createdAt?.let { categoryCreatedAt[item.id] = it }
+                        item.id to item.toDomainCategory()
+                    } else null
+                }.toMap()
+            }
+            .catch { error ->
+                val firestoreError = generateSequence(error) { it.cause }
+                    .filterIsInstance<FirebaseFirestoreException>()
+                    .firstOrNull()
+                if (firestoreError == null && error is CancellationException) throw error
+                val toLog = firestoreError ?: (error as? Exception)
+                if (toLog != null && auth.currentUser != null) {
+                    handleFirestoreError(toLog, OperationType.LIST, path)
                 }
-                .catch { error ->
-                    val firestoreError = generateSequence(error) { it.cause }
-                        .filterIsInstance<FirebaseFirestoreException>()
-                        .firstOrNull()
-                    if (firestoreError == null && error is CancellationException) throw error
-                    val toLog = firestoreError ?: (error as? Exception)
-                    if (toLog != null && auth.currentUser != null) {
-                        handleFirestoreError(toLog, OperationType.LIST, path)
-                    }
-                    throw error
-                }
-        )
+                throw error
+            }
     }
 
-    fun observeWallets(): Flow<List<WalletAccount>> = flow {
-        requireUserId()
+    fun observeWallets(): Flow<List<WalletAccount>> {
         val path = COLLECTION_WALLETS
-        emitAll(
-            db.collection(path)
-                .whereEqualTo("storeId", StoreProductDoc.STORE_ID_MAIN)
-                .snapshots()
-                .map { snapshot ->
-                    snapshot.documents.mapNotNull { doc ->
-                        val item = doc.toObject(
-                            StoreWalletDoc::class.java,
-                            DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
-                        )
-                        if (item != null) {
-                            item.createdAt?.let { walletCreatedAt[item.id] = it }
-                            item.toDomainWallet()
-                        } else null
-                    }
+        return db.collection(path)
+            .whereEqualTo("storeId", StoreProductDoc.STORE_ID_MAIN)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    val item = doc.toObject(
+                        StoreWalletDoc::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    )
+                    if (item != null) {
+                        item.createdAt?.let { walletCreatedAt[item.id] = it }
+                        item.toDomainWallet()
+                    } else null
                 }
-                .catch { error ->
-                    val firestoreError = generateSequence(error) { it.cause }
-                        .filterIsInstance<FirebaseFirestoreException>()
-                        .firstOrNull()
-                    if (firestoreError == null && error is CancellationException) throw error
-                    val toLog = firestoreError ?: (error as? Exception)
-                    if (toLog != null && auth.currentUser != null) {
-                        handleFirestoreError(toLog, OperationType.LIST, path)
-                    }
-                    throw error
+            }
+            .catch { error ->
+                val firestoreError = generateSequence(error) { it.cause }
+                    .filterIsInstance<FirebaseFirestoreException>()
+                    .firstOrNull()
+                if (firestoreError == null && error is CancellationException) throw error
+                val toLog = firestoreError ?: (error as? Exception)
+                if (toLog != null && auth.currentUser != null) {
+                    handleFirestoreError(toLog, OperationType.LIST, path)
                 }
-        )
+                throw error
+            }
     }
 
-    fun observeStoreConfig(): Flow<Pair<List<String>, CloudSyncMetadata>?> = flow {
-        requireUserId()
+    fun observeStoreConfig(): Flow<Pair<List<String>, CloudSyncMetadata>?> {
         val docRef = db.collection(COLLECTION_CONFIG).document(DOC_MAIN_CONFIG)
-        emitAll(
-            docRef.snapshots()
-                .map { snapshot ->
-                    if (!snapshot.exists()) {
-                        null
-                    } else {
-                        val doc = snapshot.toObject(
-                            StoreConfigDoc::class.java,
-                            DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
-                        ) ?: return@map null
-                        doc.createdAt?.let { configCreatedAt = it }
-                        currentSyncVersion = doc.syncVersion
-                        val meta = CloudSyncMetadata(
-                            syncVersion = doc.syncVersion,
-                            lastSyncedByName = doc.lastSyncedByName,
-                            lastSyncedAtMillis = doc.updatedAt?.toDate()?.time
-                        )
-                        doc.offerSlotProductIds.take(4) to meta
-                    }
+        return docRef.snapshots()
+            .map { snapshot ->
+                if (!snapshot.exists()) {
+                    null
+                } else {
+                    val doc = snapshot.toObject(
+                        StoreConfigDoc::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ) ?: return@map null
+                    doc.createdAt?.let { configCreatedAt = it }
+                    currentSyncVersion = doc.syncVersion
+                    val meta = CloudSyncMetadata(
+                        syncVersion = doc.syncVersion,
+                        lastSyncedByName = doc.lastSyncedByName,
+                        lastSyncedAtMillis = doc.updatedAt?.toDate()?.time
+                    )
+                    doc.offerSlotProductIds.take(4) to meta
                 }
-                .catch { error ->
-                    val firestoreError = generateSequence(error) { it.cause }
-                        .filterIsInstance<FirebaseFirestoreException>()
-                        .firstOrNull()
-                    if (firestoreError == null && error is CancellationException) throw error
-                    val toLog = firestoreError ?: (error as? Exception)
-                    if (toLog != null && auth.currentUser != null) {
-                        handleFirestoreError(toLog, OperationType.GET, docRef.path)
-                    }
-                    throw error
+            }
+            .catch { error ->
+                val firestoreError = generateSequence(error) { it.cause }
+                    .filterIsInstance<FirebaseFirestoreException>()
+                    .firstOrNull()
+                if (firestoreError == null && error is CancellationException) throw error
+                val toLog = firestoreError ?: (error as? Exception)
+                if (toLog != null && auth.currentUser != null) {
+                    handleFirestoreError(toLog, OperationType.GET, docRef.path)
                 }
-        )
+                throw error
+            }
     }
 
     suspend fun ensureUserProfile(user: FirebaseUser) {

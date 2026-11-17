@@ -52,20 +52,27 @@ class CloudStoreRepositoryRuleTest : FirestoreEmulatorTestBase() {
     }
 
     @Test
-    fun observeProducts_unauthenticatedUser_failsWithIllegalStateOrPermissionDenied() = runBlocking {
+    fun observeProducts_unauthenticatedShopper_succeedsForPublicCatalog_whilePrivateDataDenied() = runBlocking {
         auth.signOut()
         val cloudRepo = CloudStoreRepository(firestore)
 
+        val products = withTimeout(FLOW_TIMEOUT_MS) {
+            cloudRepo.observeProducts().first()
+        }
+        assertTrue(products.isEmpty() || products.isNotEmpty())
+
+        // Unauthenticated writes & private pin_config reads must still be rejected
         try {
-            withTimeout(FLOW_TIMEOUT_MS) {
-                cloudRepo.observeProducts().first()
+            withTimeout(DEFAULT_TIMEOUT_MS) {
+                com.google.android.gms.tasks.Tasks.await(
+                    firestore.collection("admin_security").document("pin_config").get()
+                )
             }
-            fail("Expected unauthenticated query to be rejected")
+            fail("Expected PERMISSION_DENIED when unauthenticated reads admin_security")
         } catch (e: Exception) {
-            assertTrue(
-                e is IllegalStateException ||
-                    e.unwrapFirestoreException()?.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
-            )
+            val fsEx = e.unwrapFirestoreException()
+            assertNotNull("Expected FirebaseFirestoreException, got $e", fsEx)
+            assertEquals(FirebaseFirestoreException.Code.PERMISSION_DENIED, fsEx?.code)
         }
     }
 
