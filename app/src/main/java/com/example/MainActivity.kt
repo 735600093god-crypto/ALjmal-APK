@@ -54,16 +54,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.data.model.Currency
 import com.example.data.remote.CloudStoreRepository
 import com.example.data.repository.StoreRepository
-import com.example.data.security.AdminSecurityManager
 import com.example.ui.auth.AuthScreen
 import com.example.ui.auth.authStateFlow
 import com.example.ui.auth.signOut
-import com.example.ui.components.AdminLoginDialog
 import com.example.ui.components.BottomNavBar
 import com.example.ui.components.LocationPickerDialog
 import com.example.ui.components.ProductDetailDialog
 import com.example.ui.components.StoreHeader
-import com.example.ui.screens.AdminScreen
+import com.example.ui.screens.AccountScreen
 import com.example.ui.screens.CartScreen
 import com.example.ui.screens.CategoriesScreen
 import com.example.ui.screens.HomeScreen
@@ -134,7 +132,6 @@ fun AlJamalStoreApp(
                 StoreViewModel(
                     repository = StoreRepository(),
                     cloudRepository = CloudStoreRepository(db),
-                    securityManager = AdminSecurityManager(app),
                     currentUser = currentUser
                 )
             }
@@ -267,45 +264,18 @@ fun AlJamalStoreApp(
                 }
 
                 AppTab.ACCOUNT -> {
-                    AdminScreen(
+                    AccountScreen(
                         products = uiState.allProducts,
                         favorites = uiState.favorites,
                         cartMap = cartQuantities,
-                        offerSlotItemIds = uiState.offerSlotItemIds,
-                        isAdminUnlocked = uiState.isAdminUnlocked,
                         currency = uiState.currency,
                         storePhone = viewModel.repository.storePhone,
                         storeWhatsApp = viewModel.repository.storeWhatsApp,
                         storeLocation = viewModel.repository.storeLocation,
-                        adminWebUrl = viewModel.repository.adminWebDashboardUrl,
                         signedInUserEmail = uiState.signedInUserEmail,
-                        isCloudAdminAuthorized = uiState.isCloudAdminAuthorized,
-                        hasUnsavedAdminChanges = uiState.hasUnsavedAdminChanges,
-                        pendingAdminChanges = uiState.pendingAdminChanges,
-                        cloudSyncStatus = uiState.cloudSyncStatus,
-                        cloudSyncMetadata = uiState.cloudSyncMetadata,
-                        firewallState = uiState.firewallState,
-                        walletAccounts = uiState.walletAccounts,
-                        categoryCustomizations = uiState.categoryCustomizations,
-                        onUnlockAdminRequest = { viewModel.openAdminLogin() },
-                        onLockAdmin = { viewModel.lockAdmin() },
+                        signedInUserName = uiState.signedInUserName,
                         onSignOutClick = {
-                            viewModel.lockAdmin()
                             signOut(credentialManager = credentialManager, scope = scope)
-                        },
-                        onSaveAndSyncToCloud = { viewModel.saveAndSyncWorkToCloud() },
-                        onDiscardPendingChanges = { viewModel.discardPendingAdminChanges() },
-                        onToggleOfferSlot = { viewModel.toggleOfferSlot(it) },
-                        onUpdatePrice = { id, p, orig -> viewModel.updateProductPrice(id, p, orig) },
-                        onUpdateProductImage = { id, imgUri -> viewModel.updateProductImage(id, imgUri) },
-                        onDeleteProduct = { viewModel.deleteProduct(it) },
-                        onAddNewProduct = { viewModel.addNewProduct(it) },
-                        onUpdateCategory = { id, title, sub, img -> viewModel.updateCategory(id, title, sub, img) },
-                        onAddWalletAccount = { viewModel.addWalletAccount(it) },
-                        onUpdateWalletAccount = { viewModel.updateWalletAccount(it) },
-                        onDeleteWalletAccount = { viewModel.deleteWalletAccount(it) },
-                        onChangeAdminPassword = { currentPwd, newPwd ->
-                            viewModel.changeAdminPassword(currentPwd, newPwd)
                         },
                         onProductClick = { viewModel.openProductDetail(it) },
                         onAddToCart = { viewModel.addToCart(it.id) },
@@ -342,21 +312,7 @@ fun AlJamalStoreApp(
         )
     }
 
-    // 3. Admin / Manager Login with Anti-Intrusion Firewall
-    if (uiState.showAdminLogin) {
-        AdminLoginDialog(
-            firewallState = uiState.firewallState,
-            onVerifyPassword = { candidate -> viewModel.verifyAdminPassword(candidate) },
-            onRefreshFirewall = { viewModel.refreshFirewallState() },
-            onSuccess = {
-                viewModel.unlockAdmin()
-                viewModel.selectTab(AppTab.ACCOUNT)
-            },
-            onDismiss = { viewModel.closeAdminLogin() }
-        )
-    }
-
-    // 4. Order Success Dialog
+    // 3. Order Success Dialog
     if (uiState.showOrderSuccessDialog) {
         Dialog(onDismissRequest = { viewModel.dismissOrderSuccessDialog() }) {
             Surface(

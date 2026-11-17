@@ -11,11 +11,8 @@ import com.example.data.model.Product
 import com.example.data.model.ProductCategory
 import com.example.data.model.WalletAccount
 import com.example.data.remote.CloudStoreRepository
-import com.example.data.remote.CloudSyncMetadata
 import com.example.data.repository.StoreRepository
 import com.example.data.security.AdminSecurityManager
-import com.example.data.security.PinVerificationResult
-import com.example.data.security.SecurityFirewallState
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
@@ -35,13 +32,6 @@ enum class AppTab(val title: String) {
     ACCOUNT("حسابي")
 }
 
-sealed interface CloudSyncStatus {
-    data object Connected : CloudSyncStatus
-    data object Syncing : CloudSyncStatus
-    data class SyncedSuccess(val version: Long, val message: String) : CloudSyncStatus
-    data class SyncError(val message: String) : CloudSyncStatus
-}
-
 data class StoreUiState(
     val currentTab: AppTab = AppTab.HOME,
     val selectedCategory: ProductCategory? = null,
@@ -56,31 +46,20 @@ data class StoreUiState(
     val deliveryFeeYer: Double = 5.0,
     val totalYer: Double = 5.0,
     val favorites: Set<String> = emptySet(),
-    val offerSlotItemIds: List<String> = emptyList(),
     val offerSlotProducts: List<Product> = emptyList(),
     val selectedProductForDetail: Product? = null,
     val showLocationPicker: Boolean = false,
-    val showAdminLogin: Boolean = false,
-    val isAdminUnlocked: Boolean = false,
     val walletAccounts: List<WalletAccount> = emptyList(),
     val categoryCustomizations: Map<String, CategoryCustomization> = emptyMap(),
     val recentSubmittedOrder: OrderSubmission? = null,
     val showOrderSuccessDialog: Boolean = false,
-    // Cloud Sync & Security Firewall State
     val signedInUserEmail: String = "",
-    val signedInUserName: String = "",
-    val isCloudAdminAuthorized: Boolean = false,
-    val hasUnsavedAdminChanges: Boolean = false,
-    val pendingAdminChanges: List<String> = emptyList(),
-    val cloudSyncStatus: CloudSyncStatus = CloudSyncStatus.Connected,
-    val cloudSyncMetadata: CloudSyncMetadata = CloudSyncMetadata(),
-    val firewallState: SecurityFirewallState = SecurityFirewallState()
+    val signedInUserName: String = ""
 )
 
 class StoreViewModel(
     val repository: StoreRepository = StoreRepository(),
     private val cloudRepository: CloudStoreRepository? = null,
-    private val securityManager: AdminSecurityManager? = null,
     private val currentUser: FirebaseUser? = null
 ) : ViewModel() {
 
@@ -89,16 +68,8 @@ class StoreViewModel(
     private val _searchQuery = MutableStateFlow("")
     private val _selectedProductForDetail = MutableStateFlow<Product?>(null)
     private val _showLocationPicker = MutableStateFlow(false)
-    private val _showAdminLogin = MutableStateFlow(false)
-    private val _isAdminUnlocked = MutableStateFlow(false)
     private val _recentSubmittedOrder = MutableStateFlow<OrderSubmission?>(null)
     private val _showOrderSuccessDialog = MutableStateFlow(false)
-    private val _isCloudAdminAuthorized = MutableStateFlow(false)
-    private val _cloudSyncStatus = MutableStateFlow<CloudSyncStatus>(CloudSyncStatus.Connected)
-    private val _cloudSyncMetadata = MutableStateFlow(CloudSyncMetadata())
-    private val _fallbackFirewallState = MutableStateFlow(SecurityFirewallState())
-
-    private var pendingPinSaltAndHash: Pair<String, String>? = null
 
     init {
         if (cloudRepository != null && currentUser != null) {
@@ -109,26 +80,9 @@ class StoreViewModel(
     private fun initializeCloudSync(cloud: CloudStoreRepository, user: FirebaseUser) {
         viewModelScope.launch {
             cloud.ensureUserProfile(user)
-            val isAdmin = cloud.checkIsCloudAdmin(user)
-            _isCloudAdminAuthorized.value = isAdmin
-            if (isAdmin) {
-                cloud.observeAdminSecurityPinConfig()
-                    .catch { error ->
-                        val fsErr = generateSequence(error) { it.cause }
-                            .filterIsInstance<FirebaseFirestoreException>()
-                            .firstOrNull()
-                        if (fsErr == null && error is CancellationException) throw error
-                        Log.w(TAG, "Error observing admin PIN config", fsErr ?: error)
-                    }
-                    .collect { pinDoc ->
-                        if (pinDoc != null && pinDoc.pinSalt.isNotBlank() && pinDoc.pinHash.isNotBlank()) {
-                            securityManager?.applySyncedPinVerifier(pinDoc.pinSalt, pinDoc.pinHash)
-                        }
-                    }
-            }
         }
 
-        // Real-time Products listener
+        // Real-time Products listener (synced from Web Admin)
         viewModelScope.launch {
             cloud.observeProducts()
                 .catch { error ->
@@ -143,7 +97,7 @@ class StoreViewModel(
                 }
         }
 
-        // Real-time Categories listener
+        // Real-time Categories listener (synced from Web Admin)
         viewModelScope.launch {
             cloud.observeCategories()
                 .catch { error ->
@@ -158,7 +112,7 @@ class StoreViewModel(
                 }
         }
 
-        // Real-time Wallets listener
+        // Real-time Wallets listener (synced from Web Admin)
         viewModelScope.launch {
             cloud.observeWallets()
                 .catch { error ->
@@ -173,7 +127,7 @@ class StoreViewModel(
                 }
         }
 
-        // Real-time Store Config (Special Offers & Sync Metadata) listener
+        // Real-time Store Config (Special Offers synced from Web Admin) listener
         viewModelScope.launch {
             cloud.observeStoreConfig()
                 .catch { error ->
@@ -185,16 +139,12 @@ class StoreViewModel(
                 }
                 .collect { pair ->
                     if (pair != null) {
-                        val (offerIds, meta) = pair
+                        val (offerIds, _) = pair
                         repository.applyCloudOfferSlots(offerIds)
-                        _cloudSyncMetadata.value = meta
                     }
                 }
         }
     }
-
-    private val firewallFlow: StateFlow<SecurityFirewallState> =
-        securityManager?.firewallState ?: _fallbackFirewallState
 
     val uiState: StateFlow<StoreUiState> = combine(
         combine(
@@ -209,11 +159,9 @@ class StoreViewModel(
         combine(
             repository.currency,
             repository.walletAccounts,
-            repository.categoryCustomizations,
-            repository.hasUnsavedChanges,
-            repository.pendingChangeSummaries
-        ) { curr, wallets, cats, dirty, summaries ->
-            Tuple5(curr, wallets, cats, dirty, summaries)
+            repository.categoryCustomizations
+        ) { curr, wallets, cats ->
+            Triple(curr, wallets, cats)
         },
         combine(
             _currentTab,
@@ -225,27 +173,16 @@ class StoreViewModel(
             Tuple5(tab, cat, query, detail, showLoc)
         },
         combine(
-            _showAdminLogin,
-            _isAdminUnlocked,
             _recentSubmittedOrder,
             _showOrderSuccessDialog
-        ) { showAdm, adminUnlocked, recentOrder, showOrderDialog ->
-            Tuple4(showAdm, adminUnlocked, recentOrder, showOrderDialog)
-        },
-        combine(
-            _isCloudAdminAuthorized,
-            _cloudSyncStatus,
-            _cloudSyncMetadata,
-            firewallFlow
-        ) { isCloudAdm, syncStatus, syncMeta, fwState ->
-            Tuple4(isCloudAdm, syncStatus, syncMeta, fwState)
+        ) { recentOrder, showOrderDialog ->
+            recentOrder to showOrderDialog
         }
-    ) { core, catalog, nav, modals, cloudAndSecurity ->
+    ) { core, catalog, nav, orderState ->
         val (p, c, f, o, loc) = core
-        val (curr, wallets, cats, dirty, summaries) = catalog
+        val (curr, wallets, cats) = catalog
         val (tab, cat, query, detail, showLoc) = nav
-        val (showAdm, adminUnlocked, recentOrder, showOrderDialog) = modals
-        val (isCloudAdm, syncStatus, syncMeta, fwState) = cloudAndSecurity
+        val (recentOrder, showOrderDialog) = orderState
 
         val filtered = p.filter { prod ->
             val matchCat = (cat == null || prod.category == cat)
@@ -282,24 +219,15 @@ class StoreViewModel(
             deliveryFeeYer = deliveryFee,
             totalYer = total,
             favorites = f,
-            offerSlotItemIds = o,
             offerSlotProducts = slotProducts,
             selectedProductForDetail = detail,
             showLocationPicker = showLoc,
-            showAdminLogin = showAdm,
-            isAdminUnlocked = adminUnlocked,
             walletAccounts = wallets,
             categoryCustomizations = cats,
             recentSubmittedOrder = recentOrder,
             showOrderSuccessDialog = showOrderDialog,
             signedInUserEmail = currentUser?.email ?: "",
-            signedInUserName = currentUser?.displayName ?: "",
-            isCloudAdminAuthorized = isCloudAdm,
-            hasUnsavedAdminChanges = dirty,
-            pendingAdminChanges = summaries,
-            cloudSyncStatus = syncStatus,
-            cloudSyncMetadata = syncMeta,
-            firewallState = fwState
+            signedInUserName = currentUser?.displayName ?: ""
         )
     }.stateIn(
         viewModelScope,
@@ -364,153 +292,6 @@ class StoreViewModel(
         _selectedProductForDetail.value = null
     }
 
-    fun openAdminLogin() {
-        securityManager?.refreshLockoutState()
-        _showAdminLogin.value = true
-    }
-
-    fun closeAdminLogin() {
-        _showAdminLogin.value = false
-    }
-
-    fun refreshFirewallState() {
-        securityManager?.refreshLockoutState()
-    }
-
-    fun verifyAdminPassword(candidate: String): PinVerificationResult {
-        val manager = securityManager ?: return PinVerificationResult.Invalid(1, 2)
-        val result = manager.verifyAdminPassword(candidate)
-        viewModelScope.launch {
-            when (result) {
-                is PinVerificationResult.Success ->
-                    cloudRepository?.logSecurityEvent("ADMIN_UNLOCK", "دخول مصرح به للوحة تحكم المدير")
-                is PinVerificationResult.Invalid ->
-                    cloudRepository?.logSecurityEvent("FAILED_PIN", "محاولة كلمة سر خاطئة (${result.failedAttempts})")
-                is PinVerificationResult.LockedOut ->
-                    cloudRepository?.logSecurityEvent("FIREWALL_LOCKOUT", "تم حظر الدخول مؤقتاً لمدة ${result.remainingSeconds} ثانية")
-            }
-        }
-        return result
-    }
-
-    fun unlockAdmin() {
-        _isAdminUnlocked.value = true
-        _showAdminLogin.value = false
-    }
-
-    fun lockAdmin() {
-        _isAdminUnlocked.value = false
-    }
-
-    fun changeAdminPassword(currentPassword: String, newPassword: String): Result<Unit> {
-        val manager = securityManager ?: return Result.failure(IllegalStateException("مدير الحماية غير متاح"))
-        val res = manager.changeAdminPassword(currentPassword, newPassword)
-        res.onSuccess { saltAndHash ->
-            pendingPinSaltAndHash = saltAndHash
-            viewModelScope.launch {
-                cloudRepository?.logSecurityEvent("PIN_CHANGED", "تم تغيير كلمة سر المدير وتحديث التشفير")
-            }
-        }
-        return res.map { }
-    }
-
-    fun toggleOfferSlot(productId: String) {
-        repository.toggleOfferSlot(productId)
-    }
-
-    fun updateProductPrice(productId: String, newPrice: Double, newOriginalPrice: Double?) {
-        if (newPrice <= 0.0 || newPrice.isNaN() || newPrice.isInfinite()) return
-        repository.updateProductPrice(productId, newPrice, newOriginalPrice)
-    }
-
-    fun updateProductImage(productId: String, newImageUrl: String) {
-        if (!AdminSecurityManager.isSafeImageUrl(newImageUrl)) return
-        repository.updateProductImage(productId, newImageUrl)
-    }
-
-    fun updateProduct(product: Product) {
-        repository.updateProduct(product)
-    }
-
-    fun deleteProduct(productId: String) {
-        repository.deleteProduct(productId)
-    }
-
-    fun addNewProduct(product: Product) {
-        repository.addNewProduct(product)
-    }
-
-    fun updateCategory(categoryId: String, title: String, subtitle: String, imageUrl: String?) {
-        val safeTitle = AdminSecurityManager.sanitizeText(title, 80)
-        val safeSub = AdminSecurityManager.sanitizeText(subtitle, 160)
-        val safeImg = imageUrl?.takeIf { AdminSecurityManager.isSafeImageUrl(it) }
-        repository.updateCategory(categoryId, safeTitle, safeSub, safeImg)
-    }
-
-    fun addWalletAccount(account: WalletAccount) {
-        repository.addWalletAccount(account)
-    }
-
-    fun updateWalletAccount(account: WalletAccount) {
-        repository.updateWalletAccount(account)
-    }
-
-    fun deleteWalletAccount(id: String) {
-        repository.deleteWalletAccount(id)
-    }
-
-    fun discardPendingAdminChanges() {
-        repository.discardPendingChanges()
-        _cloudSyncStatus.value = CloudSyncStatus.Connected
-    }
-
-    fun saveAndSyncWorkToCloud() {
-        val cloud = cloudRepository
-        if (cloud == null || currentUser == null) {
-            _cloudSyncStatus.value = CloudSyncStatus.SyncError(
-                "يرجى تسجيل الدخول بحساب Google أولاً لتفعيل المزامنة السحابية."
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            _cloudSyncStatus.value = CloudSyncStatus.Syncing
-            try {
-                val pinPair = pendingPinSaltAndHash ?: securityManager?.getCurrentSaltAndHash()
-                val version = cloud.publishFullStoreCatalog(
-                    products = repository.products.value,
-                    deletedProductIds = repository.deletedProductIds.value,
-                    categories = repository.categoryCustomizations.value,
-                    wallets = repository.walletAccounts.value,
-                    deletedWalletIds = repository.deletedWalletIds.value,
-                    offerSlotProductIds = repository.offerSlotProductIds.value,
-                    pinSaltAndHash = pinPair
-                )
-                pendingPinSaltAndHash = null
-                repository.markWorkSavedAndSynced()
-                securityManager?.recordSecurityNotice("تم حفظ العمل ومزامنته سحابياً (الإصدار $version) لجميع الأجهزة")
-                _cloudSyncStatus.value = CloudSyncStatus.SyncedSuccess(
-                    version = version,
-                    message = "تم حفظ العمل ومزامنته بنجاح مع كافة الأجهزة المتصلة بالإنترنت ✓ (الإصدار #$version)"
-                )
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: FirebaseFirestoreException) {
-                val msg = if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                    "مرفوض من جدار الحماية السحابي: يجب تسجيل الدخول بحساب المدير المصرح له (${CloudStoreRepository.BOOTSTRAPPED_ADMIN_EMAIL}) لنشر التعديلات على كل الأجهزة."
-                } else {
-                    "تعذر الحفظ والمزامنة حالياً: ${e.localizedMessage ?: "خطأ في الاتصال"}"
-                }
-                securityManager?.recordSecurityNotice("فشل المزامنة: ${e.code}")
-                _cloudSyncStatus.value = CloudSyncStatus.SyncError(msg)
-            } catch (e: Exception) {
-                _cloudSyncStatus.value = CloudSyncStatus.SyncError(
-                    "تعذر المزامنة: ${e.localizedMessage ?: "يرجى التحقق من اتصال الإنترنت"}"
-                )
-            }
-        }
-    }
-
     fun submitOrder(
         customerName: String,
         customerPhone: String,
@@ -561,5 +342,4 @@ class StoreViewModel(
     }
 }
 
-private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 private data class Tuple5<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, val e: E)
